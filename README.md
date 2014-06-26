@@ -22,10 +22,10 @@ We are currently (this text written summer 2014) working on ROS Hydro and Catkin
 
 - As a start, install `ros-groovy-desktop-full` and `ros-groovy-pr2-full`. Once we have an easy comprehensive list, we'll post it here.
 
-- As a note, [here is a list](https://gist.github.com/mbforbes/a1580f5434e35c597108) of packages you may need; if it's not running.
+- As a note, [here is a list](https://gist.github.com/mbforbes/a1580f5434e35c597108) of all packages you may need on your desktop; if it's not running, check against that list.
 
 ### PbD Code
-- Assuming you've set up a rosbuild workspace in the location `~/rosbuild_ws`, and you've correctly `source`'d the correct ROS Groovy setup files, you do the following:
+Assuming you've set up a rosbuild workspace in the location `~/rosbuild_ws`, and you've correctly `source`'d the correct ROS Groovy setup files, you do the following:
 
 ```bash
 $ cd ~/rosbuild_ws  # or your rosbuild workspace
@@ -61,9 +61,9 @@ alias realrobot='unset ROBOT; unset ROS_HOSTNAME; export ROS_MASTER_URI=http://c
 #### Commands on PR2 (`c1`)
 ```bash
 # Terminal 1: PbD backend
-$ ssh <uname>@c1  # ssh into the PR2
-$ robot stop; robot claim; robot start  # gets the robot
-# Before continuing, complete Terminal 1 on desktop to ensure PR2 ready.
+$ ssh <uname>@c1
+$ robot claim; robot stop; robot start  # gets the robot
+# Before continuing, complete Terminal 1 on desktop to ensure the PR2 is ready.
 $ roslaunch pr2_pbd_interaction pbd_demo_robot.launch  # run PbD backend
 ```
 #### Commands on desktop
