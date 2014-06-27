@@ -132,7 +132,7 @@ class Arms:
             target_joints = Arms.arms[arm_index].get_ik_for_ee(target_pose,
                                             arm_state.joint_pose)
             if (target_joints == None):
-                rospy.logerr('No IK for relative end-effector pose.')
+                rospy.logdebug('No IK for relative end-effector pose.')
                 return solution, False
             else:
                 solution.refFrame = ArmState.ROBOT_BASE
@@ -148,7 +148,7 @@ class Arms:
             target_joints = Arms.arms[arm_index].get_ik_for_ee(target_pose,
                                                     arm_state.joint_pose)
             if (target_joints == None):
-                rospy.logerr('No IK for absolute end-effector pose.')
+                rospy.logdebug('No IK for absolute end-effector pose.')
                 return arm_state, False
             else:
                 solution = ArmState()
@@ -232,7 +232,7 @@ class Arms:
 
             # Check that preconditions are met
             if (not Arms.is_condition_met(action_step.preCond)):
-                rospy.logwarn('Preconditions of action step ' + str(i) +
+                rospy.logwarn('\tPreconditions of action step ' + str(i) +
                               ' are not satisfied. Aborting.')
                 self.status = ExecutionStatus.PREEMPTED
                 break
@@ -242,26 +242,26 @@ class Arms:
 
                 # Check that postconditions are met
                 if (Arms.is_condition_met(action_step.postCond)):
-                    rospy.loginfo('Post-conditions of the action are met.')
+                    rospy.loginfo('\tPost-conditions of the action are met.')
                 else:
-                    rospy.logwarn('Post-conditions of action step ' +
+                    rospy.logwarn('\tPost-conditions of action step ' +
                                   str(i) + ' are not satisfied. Aborting.')
                     self.status = ExecutionStatus.PREEMPTED
                     break
 
             if (self.preempt):
-                rospy.logwarn('Execution preempted by user.')
+                rospy.logwarn('\tExecution preempted by user.')
                 self.status = ExecutionStatus.PREEMPTED
                 break
 
-            rospy.loginfo('Step ' + str(i) + ' of action is complete.')
+            rospy.loginfo('\tStep ' + str(i) + ' of action is complete.')
 
     def _execute_action_step(self, action_step):
         '''Executes the motion part of an action step'''
         # For each step check step type
         # If arm target action
         if (action_step.type == ActionStep.ARM_TARGET):
-            rospy.loginfo('Will perform arm target action step.')
+            rospy.loginfo('\tWill perform arm target action step.')
 
             if (not self.move_to_joints(action_step.armTarget.rArm,
                                         action_step.armTarget.lArm)):
@@ -271,7 +271,7 @@ class Arms:
         # If arm trajectory action
         elif (action_step.type == ActionStep.ARM_TRAJECTORY):
 
-            rospy.loginfo('Will perform arm trajectory action step.')
+            rospy.loginfo('\tWill perform arm trajectory action step.')
 
             # First move to the start frame
             if (not self.move_to_joints(action_step.armTrajectory.r_arm[0],
@@ -289,12 +289,12 @@ class Arms:
             while((Arms.arms[0].is_executing() or Arms.arms[1].is_executing())
                   and not self.preempt):
                 time.sleep(0.01)
-            rospy.loginfo('Trajectory complete.')
+            rospy.loginfo('\tTrajectory complete.')
 
             # Verify that both arms succeeded
             if ((not Arms.arms[0].is_successful()) or
                 (not Arms.arms[1].is_successful())):
-                rospy.logwarn('Aborting execution; ' +
+                rospy.logwarn('\tAborting execution; ' +
                               'arms failed to follow trajectory.')
                 self.status = ExecutionStatus.OBSTRUCTED
                 return False
@@ -302,14 +302,14 @@ class Arms:
         # If hand action do it for both sides
         if (action_step.gripperAction.rGripper !=
                             Arms.arms[0].get_gripper_state()):
-            rospy.loginfo('Will perform right gripper action ' +
+            rospy.loginfo('\tWill perform right gripper action ' +
                           str(action_step.gripperAction.rGripper))
             Arms.arms[0].set_gripper(action_step.gripperAction.rGripper)
             Response.perform_gaze_action(GazeGoal.FOLLOW_RIGHT_EE)
 
         if (action_step.gripperAction.lGripper !=
                             Arms.arms[1].get_gripper_state()):
-            rospy.loginfo('Will perform LEFT gripper action ' +
+            rospy.loginfo('\tWill perform LEFT gripper action ' +
                           str(action_step.gripperAction.lGripper))
             Arms.arms[1].set_gripper(action_step.gripperAction.lGripper)
             Response.perform_gaze_action(GazeGoal.FOLLOW_LEFT_EE)
@@ -318,12 +318,12 @@ class Arms:
         while(Arms.arms[0].is_gripper_moving() or
               Arms.arms[1].is_gripper_moving()):
             time.sleep(0.01)
-        rospy.loginfo('Hands done moving.')
+        rospy.loginfo('\tHands done moving.')
 
         # Verify that both grippers succeeded
         if ((not Arms.arms[0].is_gripper_at_goal()) or
             (not Arms.arms[1].is_gripper_at_goal())):
-            rospy.logwarn('Hand(s) did not fully close or open!')
+            rospy.logwarn('\tHand(s) did not fully close or open!')
 
         return True
 
@@ -331,13 +331,13 @@ class Arms:
     def _get_time_to_pose(pose, arm_index):
         ''' Returns the time to get to an arm pose'''
         if (pose == None):
-            rospy.logwarn('Arm ' + str(arm_index) + 'will not move.')
+            rospy.logwarn('\tArm ' + str(arm_index) + 'will not move.')
             return None
         else:
             time_to_pose = Arms._get_time_bw_poses(
                             Arms.arms[arm_index].get_ee_state(),
                             pose.ee_pose)
-            rospy.loginfo('Duration until next frame for arm ' +
+            rospy.loginfo('\tDuration until next frame for arm ' +
                           str(arm_index) + ': ' + str(time_to_pose))
             return time_to_pose
 
@@ -371,12 +371,12 @@ class Arms:
         while((Arms.arms[0].is_executing() or
                Arms.arms[1].is_executing()) and not self.preempt):
             time.sleep(0.01)
-        rospy.loginfo('Arms reached target.')
+        rospy.loginfo('\tArms reached target.')
 
         # Verify that both arms succeeded
         if ((not Arms.arms[0].is_successful() and is_r_moving) or
             (not Arms.arms[1].is_successful() and is_l_moving)):
-            rospy.logwarn('Aborting because arms failed to move to pose.')
+            rospy.logwarn('\tAborting because arms failed to move to pose.')
             return False
         else:
             return True

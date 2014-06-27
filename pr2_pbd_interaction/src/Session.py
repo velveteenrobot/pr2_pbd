@@ -185,7 +185,7 @@ class Session:
         if (self.n_actions() > 0):
             self.actions[self.current_action_index].clear()
         else:
-            rospy.logwarn('No skills created yet.')
+            rospy.logwarn("Can't clear action: No actions created yet.")
         self._update_experiment_state()
 
     def undo_clear(self):
@@ -193,7 +193,7 @@ class Session:
         if (self.n_actions() > 0):
             self.actions[self.current_action_index].undoClear()
         else:
-            rospy.logwarn('No skills created yet.')
+            rospy.logwarn("Can't undo clear action: No actions created yet.")
         self._update_experiment_state()
 
     def save_current_action(self):
@@ -202,7 +202,7 @@ class Session:
             self.actions[self.current_action_index].save(self._data_dir)
             self.save_session_state(is_save_actions=False)
         else:
-            rospy.logwarn('No skills created yet.')
+            rospy.logwarn("Can't save action: No actions created yet.")
 
     def add_step_to_action(self, step, object_list):
         '''Add a new step to the current action'''
@@ -210,7 +210,7 @@ class Session:
             self.actions[self.current_action_index].add_action_step(step,
                                                                 object_list)
         else:
-            rospy.logwarn('No skills created yet.')
+            rospy.logwarn("Can't add step: No actions created yet.")
         self._object_list = object_list
         self._update_experiment_state()
 
@@ -219,7 +219,7 @@ class Session:
         if (self.n_actions() > 0):
             self.actions[self.current_action_index].delete_last_step()
         else:
-            rospy.logwarn('No skills created yet.')
+            rospy.logwarn("Can't delete last step: No actions created yet.")
         self._update_experiment_state()
 
     def resume_deleted_step(self):
@@ -227,7 +227,7 @@ class Session:
         if (self.n_actions() > 0):
             self.actions[self.current_action_index].resume_deleted_step()
         else:
-            rospy.logwarn('No skills created yet.')
+            rospy.logwarn('No actions created yet.')
         self._update_experiment_state()
 
     def switch_to_action(self, action_number, object_list):
@@ -243,7 +243,7 @@ class Session:
                               + str(action_number))
                 success = False
         else:
-            rospy.logwarn('No skills created yet.')
+            rospy.logwarn("Can't switch to action: No actions created yet.")
             success = False
         self._object_list = object_list
         self._update_experiment_state()
@@ -260,7 +260,7 @@ class Session:
             else:
                 success = False
         else:
-            rospy.logwarn('No skills created yet.')
+            rospy.logwarn("Can't go to next action: No actions created yet.")
             success = False
         self._object_list = object_list
         self._update_experiment_state()
@@ -277,7 +277,7 @@ class Session:
             else:
                 success = False
         else:
-            rospy.logwarn('No skills created yet.')
+            rospy.logwarn("Can't go to previous action: No actions created yet.")
             success = False
         self._object_list = object_list
         self._update_experiment_state()
@@ -288,5 +288,5 @@ class Session:
         if (self.n_actions() > 0):
             return self.actions[self.current_action_index].n_frames()
         else:
-            rospy.logwarn('No skills created yet.')
+            rospy.logwarn("Can't get number of frames: No actions created yet.")
             return 0

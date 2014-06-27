@@ -35,6 +35,7 @@ class ActionStepMarker:
 
         self.action_step = action_step
         self.arm_index = arm_index
+        self.arm_name = 'right' if arm_index == 0 else 'left'
         self.step_number = step_number
         self.is_requested = False
         self.is_deleted = False
@@ -44,14 +45,27 @@ class ActionStepMarker:
 
         self._sub_entries = None
         self._menu_handler = None
+        self._prev_is_reachable = None
         ActionStepMarker._marker_click_cb = marker_click_cb
 
     def _is_reachable(self):
         '''Checks if there is an IK solution for action step'''
         dummy, is_reachable = Arms.solve_ik_for_arm(self.arm_index,
                                                     self.get_target())
-        rospy.loginfo('Reachability of pose in ActionStepMarker : ' +
-            str(is_reachable))
+        # A bit more complicated logging to avoid spamming the logs
+        # while still giving useful info. It now logs when reachability
+        # is first calculated, or changes.
+        if self._prev_is_reachable is None:
+            reachable_str = ('is reachable' if is_reachable else
+                    'is not reachable')
+            rospy.loginfo('Pose (' + str(self.step_number) + ', ' +
+                    self.arm_name + ') ' + reachable_str)
+        elif self._prev_is_reachable != is_reachable:
+            reachable_str = ('is now reachable' if is_reachable else
+                    'is no longer reachable')
+            rospy.loginfo('Pose (' + str(self.step_number) + ', ' +
+                    self.arm_name + ') ' + reachable_str)
+        self._prev_is_reachable = is_reachable
         return is_reachable
 
     def get_uid(self):
@@ -398,7 +412,10 @@ class ActionStepMarker:
             self.update_viz()
         elif feedback.event_type == InteractiveMarkerFeedback.BUTTON_CLICK:
             # Set the visibility of the 6DOF controller
-            rospy.loginfo('Changing visibility of the pose controls.')
+            # This happens a ton, and doesn't need to be logged like
+            # normal events (e.g. clicking on most marker controls
+            # fires here).
+            rospy.logdebug('Changing visibility of the pose controls.')
             if (self.is_control_visible):
                 self.is_control_visible = False
             else:
@@ -406,7 +423,10 @@ class ActionStepMarker:
             ActionStepMarker._marker_click_cb(self.get_uid(),
                                               self.is_control_visible)
         else:
-            rospy.loginfo('Unknown event' + str(feedback.event_type))
+            # This happens a ton, and doesn't need to be logged like
+            # normal events (e.g. clicking on most marker controls
+            # fires here).
+            rospy.logdebug('Unknown event: ' + str(feedback.event_type))
 
     def delete_step_cb(self, dummy):
         '''Callback for when delete is requested'''

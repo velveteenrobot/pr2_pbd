@@ -422,8 +422,8 @@ class Interaction:
     def speech_command_cb(self, command):
         '''Callback for when a speech command is received'''
         if command.command in self.responses.keys():
-            rospy.loginfo('\033[32m Calling response for command ' +
-                          command.command + '\033[0m')
+            rospy.loginfo('\033[32m' + 'Calling response for command ' +
+                    command.command + '\033[0m')
             response = self.responses[command.command]
 
             if (not self.arms.is_executing()):
