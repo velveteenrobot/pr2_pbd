@@ -165,9 +165,10 @@ class World:
                     bbox = self._bb_service(cluster)
                     cluster_pose = bbox.pose.pose
                     if (cluster_pose != None):
-                        rospy.loginfo('Adding unrecognized object with pose:' +
-                            World.pose_to_string(cluster_pose) + '\n' +
-                            'In ref frame' + str(bbox.pose.header.frame_id))
+                        rospy.loginfo('Adding unrecognized object with pose:')
+                        World.log_pose(rospy.loginfo, cluster_pose)
+                        rospy.loginfo('...in ref frame ' +
+                                str(bbox.pose.header.frame_id))
                         self._add_new_object(cluster_pose, bbox.box_dims,
                                              False)
         else:
@@ -290,7 +291,7 @@ class World:
             for i in range(len(World.objects)):
                 if (World.pose_distance(World.objects[i].object.pose, pose)
                         < dist_threshold):
-                    rospy.loginfo('Previously detected object at the same' +
+                    rospy.loginfo('Previously detected object at the same ' +
                                   'location, will not add this object.')
                     return False
 
@@ -504,18 +505,23 @@ class World:
                 rospy.logerr('Exception during transform.')
                 return pose
         else:
-            rospy.logwarn('One of the frame objects might not exist: ' +
-                          from_frame + ' or ' + to_frame)
+            rospy.logdebug('One of the frame objects might not exist: ' +
+                    from_frame + ' or ' + to_frame)
             return pose
 
     @staticmethod
-    def pose_to_string(pose):
-        '''For printing a pose to stdout'''
-        return ('Position: ' + str(pose.position.x) + ", " +
-                str(pose.position.y) + ', ' + str(pose.position.z) + '\n' +
-                'Orientation: ' + str(pose.orientation.x) + ", " +
-                str(pose.orientation.y) + ', ' + str(pose.orientation.z) +
-                ', ' + str(pose.orientation.w) + '\n')
+    def log_pose(log_fn, pose):
+        '''For printing a pose to rosout. We don't do it on one line
+        becuase that messes up the indentation with the rest of the log.
+
+        Args:
+            log_fn (function(str)): A logging function that takes a
+                string as an argument. For example, rospy.loginfo.
+            pose (Pose): The pose to log
+        '''
+        p, o = pose.position, pose.orientation
+        log_fn(' - position: (%f, %f, %f)' % (p.x, p.y, p.z))
+        log_fn(' - orientation: (%f, %f, %f, %f)' % (o.x, o.y, o.z, o.w))
 
     def _publish_tf_pose(self, pose, name, parent):
         ''' Publishes a TF for object pose'''
@@ -651,7 +657,10 @@ class World:
             rospy.loginfo('Clicked on object ' + str(feedback.marker_name))
             rospy.loginfo('Number of objects ' + str(len(World.objects)))
         else:
-            rospy.loginfo('Unknown event' + str(feedback.event_type))
+            # This happens a ton, and doesn't need to be logged like
+            # normal events (e.g. clicking on most marker controls
+            # fires here).
+            rospy.logdebug('Unknown event: ' + str(feedback.event_type))
 
     def update(self):
         '''Update function called in a loop'''

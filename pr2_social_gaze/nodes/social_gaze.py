@@ -29,16 +29,33 @@ from tf import TransformListener
 from pr2_social_gaze.msg import *
 
 class SocialGaze:
+
+    gaze_goal_strs = {
+        GazeGoal.LOOK_FORWARD: 'LOOK_FORWARD',
+        GazeGoal.FOLLOW_RIGHT_EE: 'FOLLOW_RIGHT_EE',
+        GazeGoal.FOLLOW_LEFT_EE: 'FOLLOW_LEFT_EE',
+        GazeGoal.GLANCE_RIGHT_EE: 'GLANCE_RIGHT_EE',
+        GazeGoal.GLANCE_LEFT_EE: 'GLANCE_LEFT_EE',
+        GazeGoal.NOD: 'NOD',
+        GazeGoal.SHAKE: 'SHAKE',
+        GazeGoal.FOLLOW_FACE: 'FOLLOW_FACE',
+        GazeGoal.LOOK_AT_POINT: 'LOOK_AT_POINT',
+        GazeGoal.LOOK_DOWN: 'LOOK_DOWN',
+        GazeGoal.NOD_ONCE : 'NOD_ONCE ',
+        GazeGoal.SHAKE_ONCE: 'SHAKE_ONCE',
+    }
+    '''This maps gaze goal constants to human-readable forms.'''
+
     def __init__(self):
         self.defaultLookatPoint = Point(1,0,1.35)
         self.downLookatPoint = Point(0.5,0,0.5)
         self.targetLookatPoint = Point(1,0,1.35)
         self.currentLookatPoint = Point(1,0,1.35)
-        
+
         self.currentGazeAction = GazeGoal.LOOK_FORWARD;
         self.prevGazeAction = self.currentGazeAction
         self.prevTargetLookatPoint = array(self.defaultLookatPoint);
-        
+
         # Some constants
         self.doNotInterrupt = [GazeGoal.GLANCE_RIGHT_EE, GazeGoal.GLANCE_LEFT_EE, GazeGoal.NOD, GazeGoal.SHAKE];
         self.nodPositions = [Point(1,0,1.05), Point(1,0,1.55)]
@@ -49,36 +66,36 @@ class SocialGaze:
         self.nodCounter = 5
         self.shakeCounter = 5
         self.facePos = None
-        
+
         ## Action client for sending commands to the head.
         self.headActionClient = SimpleActionClient('/head_traj_controller/point_head_action', PointHeadAction)
         self.headActionClient.wait_for_server()
         rospy.loginfo('Head action client has responded.')
-    
+
         self.headGoal = PointHeadGoal()
         self.headGoal.target.header.frame_id = 'base_link'
         self.headGoal.min_duration = rospy.Duration(1.0)
         self.headGoal.target.point = Point(1,0,1)
-        
+
         ## Client for receiving detected faces
         #self.faceClient = SimpleActionClient('face_detector_action', FaceDetectorAction)
-        
+
         ## Service client for arm states
         self.tfListener = TransformListener()
-        
+
         ## Server for gaze requested gaze actions
         self.gazeActionServer = actionlib.SimpleActionServer('gaze_action', GazeAction, self.executeGazeAction, False)
         self.gazeActionServer.start()
-    
+
     ## Callback function to receive ee states and face location
     def getEEPos(self, armIndex):
-        
+
         fromFrame = '/base_link'
         if (armIndex == 0):
             toFrame = '/r_wrist_roll_link'
         else:
             toFrame = '/l_wrist_roll_link'
-        
+
         try:
             t = self.tfListener.getLatestCommonTime(fromFrame, toFrame)
             (position, rotation) = self.tfListener.lookupTransform(fromFrame, toFrame, t)
@@ -104,13 +121,13 @@ class SocialGaze:
                 closest = 0
             elif len(f.face_positions) > 0:
                 closest_dist = 1000
-            
+
             for i in range(len(f.face_positions)):
                 dist = f.face_positions[i].pos.x*f.face_positions[i].pos.x + f.face_positions[i].pos.y*f.face_positions[i].pos.y + f.face_positions[i].pos.z*f.face_positions[i].pos.z
                 if dist < closest_dist:
                     closest = i
                     closest_dist = dist
-            
+
             if closest > -1:
                 self.facePos = array([f.face_positions[closest].pos.x, f.face_positions[closest].pos.y, f.face_positions[closest].pos.z])
             else:
@@ -148,9 +165,10 @@ class SocialGaze:
                     self.startGlance(1)
                 elif (command == GazeGoal.LOOK_AT_POINT):
                     self.targetLookatPoint = goal.point
-                rospy.loginfo('Setting gaze action to:' + str(command))
+                rospy.loginfo('\tSetting gaze action to: ' +
+                        SocialGaze.gaze_goal_strs[command])
                 self.currentGazeAction = command
-    
+
                 while (not self.isActionComplete):
                     time.sleep(0.1)
                 self.gazeActionServer.set_succeeded()
@@ -173,13 +191,13 @@ class SocialGaze:
             return self.array2point(self.point2array(current) + diff/step)
         else:
             return target
-    
+
     def startNod(self):
         self.prevTargetLookatPoint = self.targetLookatPoint
         self.prevGazeAction = str(self.currentGazeAction)
         self.nodCounter = 0
         self.targetLookatPoint = self.nodPositions[0]
-    
+
     def startGlance(self, armIndex):
         self.prevTargetLookatPoint = self.targetLookatPoint
         self.prevGazeAction = str(self.currentGazeAction)
@@ -191,13 +209,13 @@ class SocialGaze:
         self.prevGazeAction = str(self.currentGazeAction)
         self.shakeCounter = 0
         self.targetLookatPoint = self.shakePositions[0]
-    
+
     def point2array(self, p):
         return array((p.x, p.y, p.z))
-    
+
     def array2point(self, a):
         return Point(a[0], a[1], a[2])
-    
+
     def getNextNodPoint(self, current, target):
         if (self.isTheSame(self.point2array(current), self.point2array(target))):
             self.nodCounter += 1
@@ -227,7 +245,7 @@ class SocialGaze:
                 return self.shakePositions[self.shakeCounter%2]
         else:
             return target
-        
+
     def update(self):
 
         isActionPossiblyComplete = True
@@ -250,7 +268,7 @@ class SocialGaze:
             self.targetLookatPoint = self.getNextShakePoint(self.currentLookatPoint, self.targetLookatPoint)
             self.headGoal.min_duration = rospy.Duration(0.5)
             isActionPossiblyComplete = False;
-                
+
         elif (self.currentGazeAction == GazeGoal.GLANCE_RIGHT_EE or self.currentGazeAction == GazeGoal.GLANCE_LEFT_EE):
             self.targetLookatPoint = self.getNextGlancePoint(self.currentLookatPoint, self.targetLookatPoint)
             isActionPossiblyComplete = False;
@@ -265,11 +283,11 @@ class SocialGaze:
             self.headActionClient.send_goal(self.headGoal)
 
         time.sleep(0.02)
-            
+
 if __name__ == '__main__':
     rospy.init_node('social_gaze')
     gaze = SocialGaze()
     while not rospy.is_shutdown():
         gaze.update()
 
-    
+
