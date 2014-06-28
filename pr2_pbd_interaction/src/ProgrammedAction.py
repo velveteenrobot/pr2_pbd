@@ -165,6 +165,7 @@ class ProgrammedAction:
     def get_requested_targets(self, arm_index):
         '''Get arm steps that might have been requested from
         the interactive marker menus'''
+        # TODO(mbforbes): When does this happen? Ever?
         pose = None
         self.lock.acquire()
         if (arm_index == 0):
@@ -207,10 +208,6 @@ class ProgrammedAction:
         self.r_links = dict()
         self.l_links = dict()
         self.lock.release()
-
-    def undo_clear(self):
-        '''Undo effect of clear'''
-        self.seq = []
 
     def _get_filename(self, ext='.bag'):
         '''Returns filename for the bag that holds the action'''

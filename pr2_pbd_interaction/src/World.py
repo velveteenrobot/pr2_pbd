@@ -434,6 +434,10 @@ class World:
     @staticmethod
     def convert_ref_frame(arm_frame, ref_frame, ref_frame_obj=Object()):
         '''Transforms an arm frame to a new ref. frame'''
+        # TODO(mbforbes): the third parameter, ref_frame_obj, is passed
+        # as a string in Interaction._fix_trajectory_ref(...), but here
+        # is named ref_frame_obj and the default is Object(). Something
+        # smells wrong.
         if ref_frame == ArmState.ROBOT_BASE:
             if (arm_frame.refFrame == ArmState.ROBOT_BASE):
                 rospy.logwarn('No reference frame transformations ' +
