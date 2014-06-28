@@ -16,3 +16,20 @@ I'm noting things here that I run into but don't want to take the time quite yet
 - Trajectory business in Interaction.py should be refactored into a new class.
 
 - Change all instances of `base_link` to `/base_link`
+
+- Tests
+	- Write tests to exercise code (start easy)
+	- Use [coverage](http://nedbatchelder.com/code/coverage/) to run/document
+	- Ignore generated test files in .gitignore
+	- Add how to run tets to README
+	- Auto testing / hosting / badge
+
+- Documentation
+	- Read about how to use [autodoc](http://sphinx-doc.org/ext/autodoc.html)
+	- Make rst stubs probably for the code
+	- Make commands / script to generate
+	- Ignore genreated doc files in .gitignore (keep stubs probably?)
+	- Add how to generate docs to README
+	- Auto docs / hosting / linking?
+
+- Automatic building

@@ -36,6 +36,7 @@ from pr2_social_gaze.msg import GazeGoal
 # ######################################################################
 
 EXECUTION_Z_OFFSET = -0.00
+UPDATE_WAIT_SECONDS = 0.1
 
 
 # ######################################################################
@@ -54,6 +55,8 @@ class Interaction:
     This is the core class of the PbD "backend"; it can run on the robot
     or on the desktop.
     '''
+    # TODO(mbforbes): Refactor trajectory busiens into new class.
+    # TODO(mbforbes): Document class attributes in docstring.
 
     def __init__(self):
         # Create main components.
@@ -165,7 +168,7 @@ class Interaction:
                     self.world.get_frame_list())
 
         # NOTE(mbforbes): Should replace with rospy.spin(...) ?
-        time.sleep(0.1)
+        time.sleep(UPDATE_WAIT_SECONDS)
 
     def save_experiment_state(self):
         '''Causes session to save the state of the current action.'''
