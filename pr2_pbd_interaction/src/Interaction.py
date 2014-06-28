@@ -87,17 +87,17 @@ class Interaction:
             Command.TEST_MICROPHONE: Response(
                 self._empty_response,
                 [RobotSpeech.TEST_RESPONSE, GazeGoal.NOD]),
-            Command.RELAX_RIGHT_ARM: Response(self._relax_arm, 0),
-            Command.RELAX_LEFT_ARM: Response(self._relax_arm, 1),
-            Command.OPEN_RIGHT_HAND: Response(self._open_hand, 0),
-            Command.OPEN_LEFT_HAND: Response(self._open_hand, 1),
-            Command.CLOSE_RIGHT_HAND: Response(self._close_hand, 0),
-            Command.CLOSE_LEFT_HAND: Response(self._close_hand, 1),
+            Command.RELAX_RIGHT_ARM: Response(self._relax_arm, Side.RIGHT),
+            Command.RELAX_LEFT_ARM: Response(self._relax_arm, Side.LEFT),
+            Command.OPEN_RIGHT_HAND: Response(self._open_hand, Side.RIGHT),
+            Command.OPEN_LEFT_HAND: Response(self._open_hand, Side.LEFT),
+            Command.CLOSE_RIGHT_HAND: Response(self._close_hand, Side.RIGHT),
+            Command.CLOSE_LEFT_HAND: Response(self._close_hand, Side.LEFT),
             Command.STOP_EXECUTION: Response(self._stop_execution, None),
             Command.DELETE_ALL_STEPS: Response(self._delete_all_steps, None),
             Command.DELETE_LAST_STEP: Response(self._delete_last_step, None),
-            Command.FREEZE_RIGHT_ARM: Response(self._freeze_arm, 0),
-            Command.FREEZE_LEFT_ARM: Response(self._freeze_arm, 1),
+            Command.FREEZE_RIGHT_ARM: Response(self._freeze_arm, Side.RIGHT),
+            Command.FREEZE_LEFT_ARM: Response(self._freeze_arm, Side.LEFT),
             Command.CREATE_NEW_ACTION: Response(self._create_action, None),
             Command.EXECUTE_ACTION: Response(self._execute_action, None),
             Command.NEXT_ACTION: Response(self._next_action, None),
@@ -158,7 +158,8 @@ class Interaction:
             # Update any changes to steps that need to happen.
             action.delete_requested_steps()
             states = self._get_arm_states()
-            action.change_requested_steps(states[0], states[1])
+            action.change_requested_steps(
+                states[Side.RIGHT], states[Side.LEFT])
 
             # If the objects in the world have changed, update the
             # action with them.
@@ -542,8 +543,8 @@ class Interaction:
                 self._arm_trajectory.l_ref_name  # lRefFrameObject (Object)
             )
             traj_step.gripperAction = GripperAction(
-                self.arms.get_gripper_state(0),  # rGripper (uint8)
-                self.arms.get_gripper_state(1)  # lGripper (uint8)
+                self.arms.get_gripper_state(Side.RIGHT),  # rGripper (uint8)
+                self.arms.get_gripper_state(Side.LEFT)  # lGripper (uint8)
             )
             self.session.add_step_to_action(
                 traj_step, self.world.get_frame_list())
@@ -568,14 +569,14 @@ class Interaction:
             step = ActionStep()
             step.type = ActionStep.ARM_TARGET
             step.armTarget = ArmTarget(
-                states[0],  # rArm (ArmState)
-                states[1],  # lArm (ArmState)
+                states[Side.RIGHT],  # rArm (ArmState)
+                states[Side.LEFT],  # lArm (ArmState)
                 0.2,  # rArmVelocity (float64)
                 0.2  # lArmVelocity (float64)
             )
             step.gripperAction = GripperAction(
-                self.arms.get_gripper_state(0),  # rGripper (uint8)
-                self.arms.get_gripper_state(1)  # lGripper (uint8)
+                self.arms.get_gripper_state(Side.RIGHT),  # rGripper (uint8)
+                self.arms.get_gripper_state(Side.LEFT)  # lGripper (uint8)
             )
             self.session.add_step_to_action(step, self.world.get_frame_list())
             return [RobotSpeech.STEP_RECORDED, GazeGoal.NOD]
@@ -676,18 +677,18 @@ class Interaction:
             step = ActionStep()
             step.type = ActionStep.ARM_TARGET
             step.armTarget = ArmTarget(
-                states[0],  # rArm (ArmSTate)
-                states[1],  # lArm (ArmState)
+                states[Side.RIGHT],  # rArm (ArmSTate)
+                states[Side.LEFT],  # lArm (ArmState)
                 0.2,  # rArmVelocity (float64)
                 0.2  # lArmVelocity (float 64)
             )
             new_gripper_states = [
-                self.arms.get_gripper_state(0),
-                self.arms.get_gripper_state(1)
+                self.arms.get_gripper_state(Side.RIGHT),
+                self.arms.get_gripper_state(Side.LEFT)
             ]
             new_gripper_states[arm_index] = gripper_state
             step.gripperAction = GripperAction(
-                new_gripper_states[0], new_gripper_states[1])
+                new_gripper_states[Side.RIGHT], new_gripper_states[Side.LEFT])
             self.session.add_step_to_action(step, self.world.get_frame_list())
 
     def _fix_trajectory_ref(self):
@@ -758,8 +759,8 @@ class Interaction:
         '''Saves current arm state into continuous trajectory.'''
         if self._arm_trajectory is not None:
             states = self._get_arm_states()
-            self._arm_trajectory.rArm.append(states[0])
-            self._arm_trajectory.lArm.append(states[1])
+            self._arm_trajectory.rArm.append(states[Side.RIGHT])
+            self._arm_trajectory.lArm.append(states[Side.LEFT])
             self._arm_trajectory.timing.append(
                 rospy.Time.now() - self._trajectory_start_time)
 
