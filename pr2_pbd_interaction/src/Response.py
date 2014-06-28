@@ -114,7 +114,6 @@ class Response:
               speech_resp == RobotSpeech.ERROR_NEXT_SKILL or
               speech_resp == RobotSpeech.ERROR_NO_EXECUTION or
               speech_resp == RobotSpeech.ERROR_NO_SKILLS or
-              speech_resp == RobotSpeech.ERROR_NOT_IN_EDIT or
               speech_resp == RobotSpeech.ERROR_PREV_SKILL or
               speech_resp == RobotSpeech.EXECUTION_ERROR_NOIK or
               speech_resp == RobotSpeech.EXECUTION_ERROR_NOPOSES or
@@ -138,6 +137,6 @@ class Response:
             Response._sound_client.playWave(os.path.join(Response._sounds_dir,
                                               requested_sound + '.wav'))
         else:
-            Response._sound_client.playWave(os.path.join(Response._sounds_dir, 
+            Response._sound_client.playWave(os.path.join(Response._sounds_dir,
                                                          'OTHER.wav'))
 
