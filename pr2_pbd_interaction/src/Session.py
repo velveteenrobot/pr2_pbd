@@ -188,14 +188,6 @@ class Session:
             rospy.logwarn("Can't clear action: No actions created yet.")
         self._update_experiment_state()
 
-    def undo_clear(self):
-        '''Undo the effect of clear'''
-        if (self.n_actions() > 0):
-            self.actions[self.current_action_index].undoClear()
-        else:
-            rospy.logwarn("Can't undo clear action: No actions created yet.")
-        self._update_experiment_state()
-
     def save_current_action(self):
         '''Save current action onto hard drive'''
         if (self.n_actions() > 0):

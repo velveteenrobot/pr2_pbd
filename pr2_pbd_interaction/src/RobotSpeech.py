@@ -34,7 +34,6 @@ class RobotSpeech:
     ERROR_NEXT_SKILL = 'No actions after action'
     ERROR_PREV_SKILL = 'No actions before action'
     ERROR_NO_SKILLS = 'No actions created yet.'
-    ERROR_NOTHING_TO_UNDO = 'There is nothing to undo.'
     ERROR_NO_EXECUTION = 'No executions in progress.'
     EXECUTION_PREEMPTED = 'Stopping execution.'
     RIGHT_HAND_ALREADY_OPEN = 'Right hand is already open.'
@@ -50,10 +49,6 @@ class RobotSpeech:
     ALL_POSES_RESUMED = 'All poses resumed.'
     START_STATE_RECORDED = 'Start state recorded.'
     OBJECT_NOT_DETECTED = 'No objects were detected.'
-    ACTION_SAVED = 'Saved Action '
-    ALREADY_EDITING = 'Already in editing mode.'
-    SWITCH_TO_EDIT_MODE = 'Switched to edit mode.'
-    ERROR_NOT_IN_EDIT = ' has been saved. Say, edit action, to make changes.'
     ACTION_ALREADY_STARTED = ('Action already started. ' +
                              'Say, delete all steps, to start over.')
     ALREADY_RECORDING_MOTION = 'Already recording motion.'
