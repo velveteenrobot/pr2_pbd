@@ -840,13 +840,3 @@ class Interaction:
             Response.perform_gaze_action(GazeGoal.SHAKE)
         # No matter what, we're not executing anymore.
         self.arms.status = ExecutionStatus.NOT_EXECUTING
-
-# ######################################################################
-# Program entry point
-# ######################################################################
-
-if __name__ == '__main__':
-    # If this file is run directly, we just create an instance of
-    # Interaction and run the main() method, which loops forever (until
-    # ROS is shut down).
-    Interaction().main()
