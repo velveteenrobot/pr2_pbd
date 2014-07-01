@@ -90,7 +90,7 @@ $ roslaunch pr2_pbd_interaction pbd_simulation_stack.launch
 
 
 
-## Running tests
+## Tests
 Run the tests with `rostest pr2_pbd_interaction test_endtoend.test`. View code coverage by opening `~/.ros/htmlcov/index.html` with a web broswer.
 
 To do both of these steps automatically (opening with Google Chrome), we have provided a script:
