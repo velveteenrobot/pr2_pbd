@@ -10,6 +10,7 @@ Currently the PbD system has the following requirements:
 - Ubuntu 12.04
 - ROS Groovy
 - rosbuild
+- Python 2.7
 
 We are currently (this text written summer 2014) working on ROS Hydro and Catkin releases of the system.
 
@@ -60,11 +61,11 @@ alias realrobot='unset ROBOT; unset ROS_HOSTNAME; export ROS_MASTER_URI=http://c
 
 #### Commands on PR2 (`c1`)
 ```bash
-# Terminal 1: PbD backend
+# Terminal: PbD backend
 $ ssh <uname>@c1
 $ robot claim; robot stop; robot start  # gets the robot
 # Before continuing, complete Terminal 1 on desktop to ensure the PR2 is ready.
-$ roslaunch pr2_pbd_interaction pbd_demo_robot.launch  # run PbD backend
+$ roslaunch pr2_pbd_interaction pbd_backend.launch
 ```
 #### Commands on desktop
 ```bash
@@ -75,7 +76,7 @@ $ rosrun rqt_pr2_dashboard rqt_pr2_dashboard  # dashboard to monitor PR2
 
 # Terminal 2: PbD frontend
 $ realrobot  # see 'Prerequisites' section above
-$ roslaunch pr2_pbd_interaction pbd_demo_desktop.launch
+$ roslaunch pr2_pbd_interaction pbd_frontend.launch
 ```
 
 ### On desktop only (simulation)
@@ -83,15 +84,22 @@ $ roslaunch pr2_pbd_interaction pbd_demo_desktop.launch
 #### Commands on desktop
 
 ```bash
-# Terminal 1: Robot simulation with Gazebo
-$ roslaunch pr2_pbd_interaction simulated_robot.launch
-
-# Terminal 2: PbD backend. Note sim:=true for simulated Kinect.
-$ roslaunch pr2_pbd_interaction pbd_demo_robot.launch sim:=true
-
-# Terminal 3: PbD frontend
-$ roslaunch pr2_pbd_interaction pbd_demo_desktop.launch
+# Terminal: Robot simulation with Gazebo, PbD backend, PbD frontend
+$ roslaunch pr2_pbd_interaction pbd_simulation_stack.launch
 ```
+
+
+
+## Running tests
+Run the tests with `rostest pr2_pbd_interaction test_endtoend.test`. View code coverage by opening `~/.ros/htmlcov/index.html` with a web broswer.
+
+To do both of these steps automatically (opening with Google Chrome), we have provided a script:
+```bash
+$ roscd pr2_pbd_interaction
+$ ./scripts/test_and_coverage.sh
+```
+
+
 
 ## Questions, feedback, improvements
 Please use the Github issues page for this project.

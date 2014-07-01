@@ -17,10 +17,17 @@ set(EXECUTABLE_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/bin)
 #set the default path for built libraries to the "lib" directory
 set(LIBRARY_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/lib)
 
+# Generate messages and services
 rosbuild_genmsg()
 rosbuild_gensrv()
 
-rosbuild_add_roslaunch_check( launch/pbd_demo_desktop.launch )
-rosbuild_add_roslaunch_check( launch/pbd_demo_robot.launch ROBOT=sim )
+# Check launch files
+rosbuild_add_roslaunch_check( launch/pbd_frontend.launch )
+rosbuild_add_roslaunch_check( launch/pbd_backend_prereqs.launch ROBOT=sim )
+rosbuild_add_roslaunch_check( launch/pbd_backend.launch ROBOT=sim )
 rosbuild_add_roslaunch_check( launch/pr2_interactive_manipulation_desktop.launch )
 rosbuild_add_roslaunch_check( launch/simulated_robot.launch ROBOT=sim ROS_ENV_LOADER=/etc/ros/env.sh )
+rosbuild_add_roslaunch_check( launch/pbd_simulation_stack.launch ROBOT=sim ROS_ENV_LOADER=/etc/ros/env.sh )
+
+# Add tests
+rosbuild_add_rostest(test/test_endtoend.test)

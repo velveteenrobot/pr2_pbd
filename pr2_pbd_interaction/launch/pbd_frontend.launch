@@ -1,10 +1,12 @@
 <launch>
 	<!-- This runs the core of the demo -->
 
-	<!-- This is the GUI that lets you send speech commands with buttons and displays what the robot would say. -->
+	<!-- This is the GUI that lets you send speech commands with buttons
+	and displays what the robot would say. -->
 	<node name="pr2_pbd_gui" pkg="rqt_gui" type="rqt_gui" output="screen"></node>
 
-	<!-- This is the interactive manipulation stuff for visualization (this will run RVIZ). -->
+	<!-- This is the interactive manipulation stuff for visualization
+	(this will run RVIZ). -->
 	<include file="$(find pr2_pbd_interaction)/launch/pr2_interactive_manipulation_desktop.launch" />
 
 	<!-- This adds speech generation. -->

@@ -1,15 +1,19 @@
 <launch>
-	<!-- This file runs the PbD backend. It may be run on the robot or on the
-	     desktop (to run in simulation). If running on the desktop, make sure
-	     to pass in sim:=true to get the simulated Kinect. -->
+	<!-- This launches everything in the PbD backend stack EXCEPT for
+	PbD itself (the interaction node).
 
-	<!-- This is the main state machine for interaction and PbD -->
-	<arg name="isReload" value="False" />
-	<arg name="dataRoot" value="$(env HOME)" />
-	<arg name="experimentNumber" value="3" />
+	The purpose of splitting the launch files this way is for testing,
+	both manual and automated. If the interaction node goes down, it can
+	be brought up separately from all of its prerequisites.
+
+	Note that this DOES NOT include the simulated robot. This (and
+	pbd_backend in general) work on both the real and simulated robot.
+	-->
+
+	<!-- These arguments can be passed in. -->
 	<arg name="sim" default="false" />
 
-	<!-- This runs the interactive manipulation -->
+	<!-- This runs the interactive manipulation. -->
 	<node pkg="pr2_arm_kinematics" type="pr2_arm_kinematics_node" name="pr2_left_arm_kinematics_simple" output="screen">
 		<param name="tip_name" value="l_wrist_roll_link" />
 		<param name="root_name" value="torso_lift_link" />
@@ -31,12 +35,5 @@
 	<node pkg="trajectory_filter_server" name="trajectory_filter" type="trajectory_filter_server" output="screen">
 		<rosparam command="load" file="$(find trajectory_filter_server)/config/joint_limits.yaml"/>
 		<rosparam command="load" file="$(find pr2_pbd_interaction)/config/filters.yaml"/>
-	</node>
-
-	<!-- This runs the interaction node itself. -->
-	<node name="pr2_pbd_interaction" pkg="pr2_pbd_interaction" type="Interaction.py" output="screen">
-		<param name="dataRoot" value="$(arg dataRoot)" />
-		<param name="isReload" value="$(arg isReload)" />
-		<param name="experimentNumber" value="$(arg experimentNumber)" />
 	</node>
 </launch>
