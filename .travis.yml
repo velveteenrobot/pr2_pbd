@@ -1,0 +1,29 @@
+language: python
+python:
+    - "2.7"
+# command to install dependencies, e.g. pip install -r requirements.txt --use-mirrors
+install:
+# ROS installation
+# ----------------
+# Add ROS repositories, setup keys, update
+    - sudo sh -c 'echo "deb http://packages.ros.org/ros/ubuntu precise main" > /etc/apt/sources.list.d/ros-latest.list'
+    - wget http://packages.ros.org/ros.key -O - | sudo apt-key add -
+    - sudo apt-get update
+# Main installation, ROS setup
+    - sudo apt-get install ros-groovy-desktop-full
+    - sudo rosdep init
+    - rosdep update
+# Environment setup
+    - echo "source /opt/ros/groovy/setup.bash" >> ~/.bashrc
+    - source ~/.bashrc
+# Add PR2 and PbD packages.
+    - CURSPOT
+# Python requirements
+# -------------------
+# command to run tests
+script:
+    - rostest pr2_pbd_interaction test_endtoend.test
+# note: change this to groovy-devel when moving to PR2 repo
+branches:
+    only:
+        - style
