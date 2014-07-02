@@ -15,6 +15,9 @@ install:
 # Add ROS repositories, setup keys, update
     - sudo sh -c 'echo "deb http://packages.ros.org/ros/ubuntu $ROS_CI_DESKTOP main" > /etc/apt/sources.list.d/ros-latest.list'
     - wget http://packages.ros.org/ros.key -O - | sudo apt-key add -
+# Debug
+    - sudo cat /etc/apt/sources.list.d/ros-latest.list
+# /Debug
     - sudo apt-get update
 # Main installation, ROS setup
     - sudo apt-get install ${ROS_CI_PREFIX}desktop-full
