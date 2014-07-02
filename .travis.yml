@@ -3,17 +3,24 @@ python:
     - "2.7"
 # Command to install dependencies, e.g. pip install -r requirements.txt --use-mirrors
 install:
-# Settings
+# Settings + Debug
     - export ROS_CI_DESKTOP=`lsb_release -cs`  # e.g. 'precise'
+    - echo $ROS_CI_DESKTOP
     - export ROS_CI_VERSION=groovy  # e.g. 'groovy'
+    - echo $ROS_CI_VERSION
     - export ROS_CI_PREFIX=ros-${ROS_CI_VERSION}-  # e.g. 'ros-groovy-'
+    - echo $ROS_CI_PREFIX
 # Exports for scripts
     - export ROS_HOSTNAME=localhost
+    - echo $ROS_HOSTNAME
     - export ROS_MASTER_URI=http://localhost:11311
+    - echo $ROS_MASTER_URI
     - export ROBOT=sim
+    - echo $ROBOT
     - export MY_IP=$(/sbin/ifconfig eth0 | awk '/inet/ { print $2 } ' | sed -e s/addr://)
+    - echo $MY_IP
 # Add ROS repositories, setup keys, update
-    - sudo sh -c 'echo "deb http://packages.ros.org/ros/ubuntu $ROS_CI_DESKTOP main" > /etc/apt/sources.list.d/ros-latest.list'
+    - sudo sh -c 'echo "deb http://packages.ros.org/ros/ubuntu ${ROS_CI_DESKTOP} main" > /etc/apt/sources.list.d/ros-latest.list'
     - wget http://packages.ros.org/ros.key -O - | sudo apt-key add -
 # Debug
     - sudo cat /etc/apt/sources.list.d/ros-latest.list
