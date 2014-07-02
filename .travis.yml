@@ -1,29 +1,49 @@
 language: python
 python:
     - "2.7"
-# command to install dependencies, e.g. pip install -r requirements.txt --use-mirrors
+# Command to install dependencies, e.g. pip install -r requirements.txt --use-mirrors
 install:
-# ROS installation
-# ----------------
+# Settings
+    - export ROS_CI_DESKTOP=`lsb_release -cs`  # e.g. 'precise'
+    - export ROS_CI_VERSION=groovy  # e.g. 'groovy'
+    - export ROS_CI_PREFIX=ros-${ROS_CI_VERSION}-  # e.g. 'ros-groovy-'
+# Exports for scripts
+    - export ROS_HOSTNAME=localhost
+    - export ROS_MASTER_URI=http://localhost:11311
+    - export ROBOT=sim
+    - export MY_IP=$(/sbin/ifconfig eth0 | awk '/inet/ { print $2 } ' | sed -e s/addr://)
 # Add ROS repositories, setup keys, update
-    - sudo sh -c 'echo "deb http://packages.ros.org/ros/ubuntu precise main" > /etc/apt/sources.list.d/ros-latest.list'
+    - sudo sh -c 'echo "deb http://packages.ros.org/ros/ubuntu $ROS_CI_DESKTOP main" > /etc/apt/sources.list.d/ros-latest.list'
     - wget http://packages.ros.org/ros.key -O - | sudo apt-key add -
     - sudo apt-get update
 # Main installation, ROS setup
-    - sudo apt-get install ros-groovy-desktop-full
+    - sudo apt-get install ${ROS_CI_PREFIX}desktop-full
     - sudo rosdep init
     - rosdep update
 # Environment setup
-    - echo "source /opt/ros/groovy/setup.bash" >> ~/.bashrc
+    - echo "source /opt/ros/${ROS_CI_VERSION}/setup.bash" >> ~/.bashrc
     - source ~/.bashrc
-# Add PR2 and PbD packages.
-    - CURSPOT
-# Python requirements
-# -------------------
-# command to run tests
+# Add required PR2/desktop packages.
+# (These can be compressed into one command, but this is easier to maintain.)
+    - sudo apt-get install ${ROS_CI_PREFIX}pr2-desktop
+    - sudo apt-get install ${ROS_CI_PREFIX}pr2-interactive-manipulation
+    - sudo apt-get install ${ROS_CI_PREFIX}simulator-gazebo
+    - sudo apt-get install ${ROS_CI_PREFIX}pr2-simulator
+    - sudo apt-get install ${ROS_CI_PREFIX}openni-launch
+# Add required python packages
+    - pip install --use-mirrors numpy scipy coverage
+# Create ROS workspace & initialize it
+    - mkdir ~/rosbuild_ws
+    - cd ~/rosbuild_ws
+    - rosws init . /open/ros/${ROS_CI_VERSION}
+# Copy in pbd & make messages
+    - git clone https://github.com/PR2/pr2_pbd.git
+    - cd pr2_pbd
+    - rosmake
+# Command to run tests
 script:
     - rostest pr2_pbd_interaction test_endtoend.test
-# note: change this to groovy-devel when moving to PR2 repo
+# NOTE(mbforbes): Change this to groovy-devel when moving to PR2 repo.
 branches:
     only:
         - style
