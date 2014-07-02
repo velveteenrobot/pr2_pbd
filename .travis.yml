@@ -17,10 +17,8 @@ install:
     - echo $ROS_MASTER_URI
     - export ROBOT=sim
     - echo $ROBOT
-    - export MY_IP=$(/sbin/ifconfig eth0 | awk '/inet/ { print $2 } ' | sed -e s/addr://)
-    - echo $MY_IP
 # Add ROS repositories, setup keys, update
-    - sudo sh -c 'echo "deb http://packages.ros.org/ros/ubuntu ${ROS_CI_DESKTOP} main" > /etc/apt/sources.list.d/ros-latest.list'
+    - sudo echo "deb http://packages.ros.org/ros/ubuntu ${ROS_CI_DESKTOP} main" > /etc/apt/sources.list.d/ros-latest.list
     - wget http://packages.ros.org/ros.key -O - | sudo apt-key add -
 # Debug
     - sudo cat /etc/apt/sources.list.d/ros-latest.list
