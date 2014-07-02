@@ -1,6 +1,5 @@
 # PR2 Programming by Demonstration
 [![Build Status](https://travis-ci.org/mbforbes/pr2_pbd.svg?branch=style)](https://travis-ci.org/mbforbes/pr2_pbd)
-
 [![Coverage Status](https://coveralls.io/repos/mbforbes/pr2_pbd/badge.png?branch=style)](https://coveralls.io/r/mbforbes/pr2_pbd?branch=style)
 
 This repository contains the work of [Maya Cakmak](http://www.mayacakmak.com/) and the [Human-Centered Robotics Lab](https://sites.google.com/site/humancenteredrobotics/) at the University of Washington. Please see those sites for citing publications. We abbreviate Programming by Demonstration with PbD.
