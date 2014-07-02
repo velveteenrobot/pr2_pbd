@@ -18,7 +18,7 @@ install:
     - export ROBOT=sim
     - echo $ROBOT
 # Add ROS repositories, setup keys, update
-    - sudo echo "deb http://packages.ros.org/ros/ubuntu ${ROS_CI_DESKTOP} main" > /etc/apt/sources.list.d/ros-latest.list
+    - echo "deb http://packages.ros.org/ros/ubuntu ${ROS_CI_DESKTOP} main" | sudo tee /etc/apt/sources.list.d/ros-latest.list
     - wget http://packages.ros.org/ros.key -O - | sudo apt-key add -
 # Debug
     - sudo cat /etc/apt/sources.list.d/ros-latest.list
