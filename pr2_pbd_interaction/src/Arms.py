@@ -26,7 +26,7 @@ class Arms:
         self.attended_arm = -1
         self.action = None
         self.preempt = False
-	self.z_offset = 0
+        self.z_offset = 0
 
         rospy.loginfo('Arms have been initialized.')
 
@@ -70,7 +70,7 @@ class Arms:
         # This will take long, create a thread
         self.action = action.copy()
         self.preempt = False
-	self.z_offset = z_offset
+        self.z_offset = z_offset
         thread = threading.Thread(group=None, target=self.execute_action,
                                   name='skill_execution_thread')
         thread.start()

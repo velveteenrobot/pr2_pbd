@@ -28,6 +28,7 @@
   <depend package="pr2_pbd_speech_recognition"/>
   <depend package="pr2_social_gaze"/>
   <depend package="rospy"/>
+  <depend package="rostest"/>
   <depend package="rqt_gui"/>
   <depend package="sound_play"/>
   <depend package="std_msgs"/>

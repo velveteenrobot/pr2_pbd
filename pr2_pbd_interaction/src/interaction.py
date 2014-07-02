@@ -11,8 +11,9 @@ roslib.load_manifest('pr2_pbd_interaction')
 import rospy
 
 # System builtins
-import time
 from collections import Counter
+import signal
+import threading
 
 # ROS builtins
 from visualization_msgs.msg import MarkerArray
@@ -27,6 +28,7 @@ from Arm import ArmMode
 from pr2_pbd_interaction.msg import (
     ArmState, GripperState, ActionStep, ArmTarget, Object, GripperAction,
     ArmTrajectory, ExecutionStatus, GuiCommand, Side)
+from pr2_pbd_interaction.srv import Ping, PingResponse
 from pr2_pbd_speech_recognition.msg import Command
 from pr2_social_gaze.msg import GazeGoal
 
@@ -36,6 +38,7 @@ from pr2_social_gaze.msg import GazeGoal
 # ######################################################################
 
 EXECUTION_Z_OFFSET = -0.00
+UPDATE_WAIT_SECONDS = 0.1
 
 
 # ######################################################################
@@ -54,8 +57,13 @@ class Interaction:
     This is the core class of the PbD "backend"; it can run on the robot
     or on the desktop.
     '''
+    # TODO(mbforbes): Refactor trajectory busiens into new class.
+    # TODO(mbforbes): Document class attributes in docstring.
 
     def __init__(self):
+        # Register as a ROS node.
+        rospy.init_node('pr2_pbd_interaction', anonymous=True)
+
         # Create main components.
         self.arms = Arms()
         self.world = World()
@@ -107,27 +115,68 @@ class Interaction:
             Command.STOP_RECORDING_MOTION: Response(self._stop_recording, None)
         }
 
+        # Span off a thread to run the update loops.
+        threading.Thread(
+            group=None, target=self._update, name='interaction_update_thread'
+        ).start()
+
+        # Register signal handlers for program termination.
+        # TODO(mbforbes): Test that these are really catching the
+        # signals. I think we might have to pass disable_signals=True to
+        # rospy.init_node(...), though I'm not sure.
+        signal.signal(signal.SIGINT, self._signal_handler)
+        signal.signal(signal.SIGQUIT, self._signal_handler)
+        rospy.on_shutdown(self._on_shutdown)
+
         # The PbD backend is ready.
         rospy.loginfo('Interaction initialized.')
+        self._ping_srv = rospy.Service(
+            'interaction_ping', Ping, self._interaction_ping)
 
     # ##################################################################
-    # API ("public" methods)
+    # Internal ("private" methods)
     # ##################################################################
 
-    # As interaction is the central class, only the interaction.py node
-    # imports it and runs the update(...) function, calling
-    # save_experiment_state(...) at termination to ensure everything is
-    # saved. This functionality should be removed so that Interaction.py
-    # is a standalone node, but for now, we keep the update(...) and
-    # save_experiment_state(...) methods as the API.
+    # The following methods are 'core' to the running of the program.
 
-    def update(self):
+    def _signal_handler(self, signal, frame):
+        '''Intercept quit signals (like ^C) in order to clean up (save
+        experiment state) before exiting.'''
+        rospy.loginfo('Interaction signal handler intercepted signal; saving.')
+        self.session.save_current_action()
+        # NOTE(mbforbes): We don't call sys.exit(0) here because that
+        # would prevent cleanup from happening outside interaction
+        # (e.g. in the node that's running it).
+
+    def _interaction_ping(self, __):
+        '''This is the service that is provided so that external nodes
+        know the interaction (i.e. PbD) is ready.
+
+        Args:
+            __ (PingRequest): unused
+
+        Returns:
+            PingResponse: empty
+        '''
+        return PingResponse()
+
+    def _on_shutdown(self):
+        '''This is mostly for debugging: log that the interaction node
+        itself is being shutdown.'''
+        rospy.loginfo('Interaction node shutting down.')
+
+    def _update(self):
         '''General update for the main loop.
 
         This is called continuously in interaction.py, without pause,
         until ROS is shutdown. This pauses for 100ms at the end of every
         run before returning.
         '''
+        # Check whether shutdown.
+        if rospy.is_shutdown():
+            self.session.save_current_action()
+            rospy.loginfo("Interaction update thread exiting.")
+            return
 
         # Update arms.
         self.arms.update()
@@ -165,16 +214,10 @@ class Interaction:
                 self.session.get_current_action().update_objects(
                     self.world.get_frame_list())
 
-        # NOTE(mbforbes): Should replace with rospy.spin(...) ?
-        time.sleep(0.1)
-
-    def save_experiment_state(self):
-        '''Causes session to save the state of the current action.'''
-        self.session.save_current_action()
-
-    # ##################################################################
-    # Internal ("private" methods)
-    # ##################################################################
+        # This is the pause between update runs. Note that this doesn't
+        # guarantee an update rate, only that there is this amount of
+        # pause between udpates.
+        rospy.sleep(UPDATE_WAIT_SECONDS)
 
     # The following methods receive commands from speech / GUI and
     # process them. These are the multiplexers.
