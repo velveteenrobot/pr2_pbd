@@ -27,4 +27,5 @@ if __name__ == '__main__':
     # System execution finished; generate coverage report if enabled.
     if use_coverage:
         cov.stop()
+        cov.save()
         cov.html_report(title='PR2 PbD code coverage')
