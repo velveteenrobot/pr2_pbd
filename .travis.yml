@@ -39,10 +39,11 @@ install:
 # Add required python packages
     - cd ~/rosbuild_ws/pr2_pbd
     - pip install -r requirements.txt --use-mirrors
-# Initialize ROS workspace
+# Initialize ROS workspace, setup, set path
     - cd ~/rosbuild_ws
     - rosws init . /opt/ros/${ROS_CI_VERSION}
     - source ~/rosbuild_ws/setup.bash
+    - export ROS_PACKAGE_PATH=~/rosbuild_ws/:/opt/ros/${ROS_CI_VERSION}/share:/opt/ros/${ROS_CI_VERSION}/stacks
 # Make messages
     - cd pr2_pbd
     - rosmake
