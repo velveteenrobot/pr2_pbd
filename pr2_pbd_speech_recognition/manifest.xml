@@ -15,7 +15,6 @@
 	<review status="unreviewed" notes=""/>
 	<url>http://ros.org/wiki/pr2_pbd_speech_recognition</url>
 
-	<depend package="pocketsphinx"/>
 	<depend package="std_msgs"/>
 	<depend package="rospy"/>
 </package>
