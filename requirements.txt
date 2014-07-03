@@ -1,5 +1,2 @@
 coverage
 python-coveralls
-rospkg
-catkin-pkg
-rosdep
