@@ -3,6 +3,8 @@ python:
     - "2.7"
 # Command to install dependencies, e.g. pip install -r requirements.txt --use-mirrors
 install:
+# Before anything, see if we can get the mongoDB troubles out of the way.
+    - sudo apt-get install mongodb-clients mongodb-dev mongodb-server
 # First, move code to correct place
     - mkdir -p ~/rosbuild_ws
     - cd ..; mv pr2_pbd ~/rosbuild_ws/
@@ -15,28 +17,22 @@ install:
     - export ROS_MASTER_URI=http://localhost:11311
     - export ROBOT=sim
 # Add ROS repositories, setup keys, update
-    - echo "deb http://packages.ros.org/ros/ubuntu ${ROS_CI_DESKTOP} main" | sudo tee /etc/apt/sources.list.d/ros-latest.list
+    - echo "deb http://packages.ros.org/ros/ubuntu $ROS_CI_DESKTOP main" | sudo tee /etc/apt/sources.list.d/ros-latest.list
     - wget http://packages.ros.org/ros.key -O - | sudo apt-key add -
     - sudo apt-get update
 # Main installation, ROS setup
-# Trying rosdep instead. Previously:    - sudo apt-get install ${ROS_CI_PREFIX}desktop-full
-    - sudo apt-get install python-rosdep
+    - sudo apt-get install ${ROS_CI_PREFIX}desktop-full
     - sudo rosdep init
     - rosdep update
-# rviz's comamnd not working
-#    - rosdep install --default-yes --from-paths ./  --rosdistro $ROS_CI_VERSION
-# This might do it
-    - rosdep install pr2_pbd
 # Environment setup
     - source /opt/ros/${ROS_CI_VERSION}/setup.bash
 # Add required PR2/desktop packages.
 # (These can be compressed into one command, but this is easier to maintain.)
-# NOTE(mbforbes): Trying rosdep instead (above). Previous commands are below.
-#    - sudo apt-get install ${ROS_CI_PREFIX}simulator-gazebo
-#    - sudo apt-get install ${ROS_CI_PREFIX}openni-launch
-#    - sudo apt-get install ${ROS_CI_PREFIX}pr2-interactive-manipulation
-#    - sudo apt-get install ${ROS_CI_PREFIX}pr2-simulator
-#    - sudo apt-get install ${ROS_CI_PREFIX}pr2-desktop
+    - sudo apt-get install ${ROS_CI_PREFIX}simulator-gazebo
+    - sudo apt-get install ${ROS_CI_PREFIX}openni-launch
+    - sudo apt-get install ${ROS_CI_PREFIX}pr2-interactive-manipulation
+    - sudo apt-get install ${ROS_CI_PREFIX}pr2-simulator
+    - sudo apt-get install ${ROS_CI_PREFIX}pr2-desktop
 # Add required python packages
     - pip install -r requirements.txt --use-mirrors
 # Initialize ROS workspace
