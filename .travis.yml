@@ -6,6 +6,7 @@ install:
 # Before anything, see if we can get the mongoDB troubles out of the way.
     - sudo apt-get update
     - sudo apt-get --purge remove mongodb-10gen
+    - sudo apt-get upgrade
     - yes | sudo apt-get -y install mongodb-clients mongodb-dev mongodb-server
 # First, move code to correct place
     - mkdir -p ~/rosbuild_ws

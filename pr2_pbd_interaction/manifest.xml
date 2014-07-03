@@ -38,5 +38,3 @@
   <depend package="trajectory_filter_server"/>
   <depend package="visualization_msgs"/>
 </package>
-
-
