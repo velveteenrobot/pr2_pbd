@@ -87,6 +87,7 @@ The required python packages are listed in `requirements.txt` and can be install
 ```bash
 $ pip install -r requirements.txt
 ```
+Note that if you use python with virtualenv, you want it to still find the apt-get installed python packages, as not all are available or work property with pip. Do this by starting virtualenv with: `virtualenv --system-site-packages ENV` ([more info](http://virtualenv.readthedocs.org/en/latest/virtualenv.html#the-system-site-packages-option)).
 
 ### PbD code
 Do the following to checkout and make the PBD code:
@@ -117,13 +118,13 @@ $ roslaunch pr2_pbd_interaction pbd_backend.launch
 #### Commands on desktop
 ```bash
 # Terminal 1: PR2 dashboard
-$ realrobot  # see 'Prerequisites' section above
+$ realrobot  # points ROS to PR2
 $ rosrun rqt_pr2_dashboard rqt_pr2_dashboard  # dashboard to monitor PR2
 # Make sure both runstops are OK (far right icon), and motors OK (red gear icon)
 
 # Terminal 2: PbD frontend
-$ realrobot  # see 'Prerequisites' section above
-$ roslaunch pr2_pbd_interaction pbd_frontend.launch
+$ realrobot  # points ROS to PR2
+$ roslaunch pr2_pbd_interaction pbd_frontend.launch  # rviz, rqt, speech
 ```
 
 ### On desktop only (simulation)
