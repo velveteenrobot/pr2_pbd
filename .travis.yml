@@ -23,9 +23,12 @@ install:
     - sudo apt-get install python-rosdep
     - sudo rosdep init
     - rosdep update
-    - rosdep install --default-yes --from-paths ./  --rosdistro $ROS_CI_VERSION
+# rviz's comamnd not working
+#    - rosdep install --default-yes --from-paths ./  --rosdistro $ROS_CI_VERSION
+# This might do it
+    - rosdep install pr2_pbd
 # Environment setup
-    - source /opt/ros/${ROS_CI_VERSION}/setup.bash"
+    - source /opt/ros/${ROS_CI_VERSION}/setup.bash
 # Add required PR2/desktop packages.
 # (These can be compressed into one command, but this is easier to maintain.)
 # NOTE(mbforbes): Trying rosdep instead (above). Previous commands are below.
