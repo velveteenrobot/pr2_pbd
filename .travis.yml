@@ -36,11 +36,11 @@ install:
     - source ~/.bashrc
 # Add required PR2/desktop packages.
 # (These can be compressed into one command, but this is easier to maintain.)
-    - sudo apt-get install ${ROS_CI_PREFIX}pr2-desktop
-    - sudo apt-get install ${ROS_CI_PREFIX}pr2-interactive-manipulation
     - sudo apt-get install ${ROS_CI_PREFIX}simulator-gazebo
-    - sudo apt-get install ${ROS_CI_PREFIX}pr2-simulator
     - sudo apt-get install ${ROS_CI_PREFIX}openni-launch
+    - sudo apt-get install ${ROS_CI_PREFIX}pr2-interactive-manipulation
+    - sudo apt-get install ${ROS_CI_PREFIX}pr2-simulator
+    - sudo apt-get install ${ROS_CI_PREFIX}pr2-desktop
 # Add required python packages
     - pip install -r requirements.txt --use-mirrors
 # Initialize ROS workspace
