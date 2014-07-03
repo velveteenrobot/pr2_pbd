@@ -1,6 +1,8 @@
 language: python
 python:
     - "2.7"
+virtualenv:
+    system_site_packages: true
 # Command to install dependencies, e.g. pip install -r requirements.txt --use-mirrors
 install:
 # Before anything, see if we can get the mongoDB troubles out of the way.
