@@ -1,4 +1,2 @@
-numpy
-scipy
 coverage
 python-coveralls
