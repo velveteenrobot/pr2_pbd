@@ -4,7 +4,8 @@ python:
 # Command to install dependencies, e.g. pip install -r requirements.txt --use-mirrors
 install:
 # Before anything, see if we can get the mongoDB troubles out of the way.
-    - sudo apt-get -y install mongodb-clients mongodb-dev mongodb-server
+    - sudo apt-get update
+    - yes | sudo apt-get -y install mongodb-clients mongodb-dev mongodb-server
 # First, move code to correct place
     - mkdir -p ~/rosbuild_ws
     - cd ..; mv pr2_pbd ~/rosbuild_ws/
