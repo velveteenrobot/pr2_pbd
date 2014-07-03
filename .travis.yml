@@ -42,6 +42,7 @@ install:
 # Initialize ROS workspace
     - cd ~/rosbuild_ws
     - rosws init . /opt/ros/${ROS_CI_VERSION}
+    - source ~/rosbuild_ws/setup.bash
 # Make messages
     - cd pr2_pbd
     - rosmake
