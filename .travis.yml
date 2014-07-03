@@ -37,10 +37,9 @@ install:
     - sudo apt-get -y install ${ROS_CI_PREFIX}pr2-simulator
     - sudo apt-get -y install ${ROS_CI_PREFIX}pr2-desktop
     - sudo apt-get -y install python-rosinstall
-    - sudo apt-get -y install python-rospkg
 # Add required python packages
     - cd ~/rosbuild_ws/pr2_pbd
-    - pip install -r requirements.txt --use-mirrors
+    - pip install -r requirements.txt
 # Initialize ROS workspace, setup, set path
     - cd ~/rosbuild_ws
     - rosws init . /opt/ros/${ROS_CI_VERSION}

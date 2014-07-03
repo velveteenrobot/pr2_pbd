@@ -57,7 +57,7 @@ $ sudo apt-get install python-pip
 
 The required pip packages are listed in `requirements.txt`. From the root of the repository, run:
 ```bash
-$ pip install -r requirements.txt --use-mirrors
+$ pip install -r requirements.txt
 ```
 
 
