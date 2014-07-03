@@ -15,6 +15,6 @@
 	</include>
 
 	<!-- Run the tests themselves. -->
-	<test test-name="test_endtoend" pkg="pr2_pbd_interaction" type="test_endtoend.py" ns="pr2_pbd_interaction" time-limit="600.0">
+	<test test-name="test_endtoend" pkg="pr2_pbd_interaction" type="test_endtoend.py" ns="pr2_pbd_interaction" time-limit="3600.0">
 	</test>
 </launch>
