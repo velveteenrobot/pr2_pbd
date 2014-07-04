@@ -5,3 +5,4 @@ ros-groovy-pr2-simulator
 ros-groovy-pr2-desktop
 ros-groovy-pocketsphinx
 python-rosinstall
+ros-groovy-gazebo-ros-current

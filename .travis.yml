@@ -62,7 +62,8 @@ install:
 # Make messages
     - cd pr2_pbd
     - rosmake
-
+# Debug; gazebo info
+    - which gazebo | xargs ls -la
 # Command to run tests
 # --------------------
 script:
