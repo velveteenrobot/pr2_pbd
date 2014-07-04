@@ -139,13 +139,15 @@ $ roslaunch pr2_pbd_interaction pbd_simulation_stack.launch
 
 
 ## Tests
+0. Lint your Python to pep8 standards by running `pep8 file1 file2 ...`.
+
 0. Run the tests with `rostest pr2_pbd_interaction test_endtoend.test`.
 
 0. View code coverage by opening `~/.ros/htmlcov/index.html` with a web broswer.
 
 0. With an acout setup at [Coveralls](https://coveralls.io), edit the `.coveralls.yml` with your repo_token, and track coverage there by running `coveralls --data_file ~/.ros/.coverage`.
 
-To do all of these steps automatically (opening with Google Chrome, assuming Coveralls and `.coveralls.yml` setup), we have provided a script:
+To do all of these steps automatically (linting common directories, opening coverage report with Google Chrome, assuming Coveralls and `.coveralls.yml` correctly setup), we have provided a script:
 ```bash
 $ roscd pr2_pbd_interaction; ./scripts/test_and_coverage.sh
 ```
