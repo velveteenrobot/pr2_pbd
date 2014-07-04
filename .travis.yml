@@ -64,7 +64,9 @@ install:
     - cd pr2_pbd
     - rosmake
 # Debug; gazebo info
-    - which gazebo | xargs ls -la
+    - `which gazebo` | xargs ls -la
+    - which gzserver
+    - which gzclient
 # Command to run tests
 # --------------------
 script:
