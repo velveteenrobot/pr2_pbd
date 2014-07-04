@@ -40,12 +40,13 @@ install:
     - export ROS_HOSTNAME=localhost
     - export ROS_MASTER_URI=http://localhost:11311
     - export ROBOT=sim
-# Add ROS repositories, setup keys, update
+# Add ROS & Gazebo repositories, setup keys, update, install, init basics
     - echo "deb http://packages.ros.org/ros/ubuntu $ROS_CI_DESKTOP main" | sudo tee /etc/apt/sources.list.d/ros-latest.list
     - wget http://packages.ros.org/ros.key -O - | sudo apt-key add -
+    - echo "deb http://packages.osrfoundation.org/gazebo/ubuntu $ROS_CI_DESKTOP main" | sudo tee /etc/apt/sources.list.d/gazebo-latest.list
+    - wget http://packages.osrfoundation.org/gazebo.key -O - | sudo apt-key add -
     - yes | sudo apt-get -y update
-# Main installation, ROS setup
-    - yes | sudo apt-get -y install ${ROS_CI_PREFIX}desktop-full
+    - yes | sudo apt-get -y install ${ROS_CI_PREFIX}desktop gazebo
     - sudo rosdep init
     - rosdep update
 # Environment setup
