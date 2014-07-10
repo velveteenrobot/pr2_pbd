@@ -1,11 +1,13 @@
 <launch>
 	<!-- This file runs the end-to-end PbD tests in simulation. It
-	doesn't use a frontend. -->
+	normally doesn't use a frontend. -->
+
+	<!-- By default, don't launch gazebo GUI during tests. -->
+	<arg name="gui" default="false" />
 
 	<!-- Get the simulated robot. -->
 	<include file="$(find pr2_pbd_interaction)/launch/simulated_robot.launch">
-		<!-- Don't launch gazebo GUI during tests. -->
-		<arg name="gui" value="false" />
+		<arg name="gui" value="$(arg gui)" />
 	</include>
 
 	<!-- Bring up the PbD backend. -->
