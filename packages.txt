@@ -1,0 +1,7 @@
+ros-groovy-simulator-gazebo
+ros-groovy-openni-launch
+ros-groovy-pr2-interactive-manipulation
+ros-groovy-pr2-simulator
+ros-groovy-pr2-desktop
+ros-groovy-pocketsphinx
+python-rosinstall

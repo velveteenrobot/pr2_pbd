@@ -1,58 +1,74 @@
+# General setup
+# -------------
 language: python
 python:
     - "2.7"
-# Command to install dependencies, e.g. pip install -r requirements.txt --use-mirrors
-install:
-# First, move code to correct place
-    - mkdir -p ~/rosbuild_ws
-    - cd ..; mv pr2_pbd ~/rosbuild_ws/
-# Settings + Debug
-    - export ROS_CI_DESKTOP=`lsb_release -cs`  # e.g. 'precise'
-    - echo $ROS_CI_DESKTOP
-    - export ROS_CI_VERSION=groovy  # e.g. 'groovy'
-    - echo $ROS_CI_VERSION
-    - export ROS_CI_PREFIX=ros-${ROS_CI_VERSION}-  # e.g. 'ros-groovy-'
-    - echo $ROS_CI_PREFIX
-# Exports for scripts
-    - export ROS_HOSTNAME=localhost
-    - echo $ROS_HOSTNAME
-    - export ROS_MASTER_URI=http://localhost:11311
-    - echo $ROS_MASTER_URI
-    - export ROBOT=sim
-    - echo $ROBOT
-# Add ROS repositories, setup keys, update
-    - echo "deb http://packages.ros.org/ros/ubuntu ${ROS_CI_DESKTOP} main" | sudo tee /etc/apt/sources.list.d/ros-latest.list
-    - wget http://packages.ros.org/ros.key -O - | sudo apt-key add -
-# Debug
-    - sudo cat /etc/apt/sources.list.d/ros-latest.list
-# /Debug
-    - sudo apt-get update
-# Main installation, ROS setup
-    - sudo apt-get install ${ROS_CI_PREFIX}desktop-full
-    - sudo rosdep init
-    - rosdep update
-# Environment setup
-    - echo "source /opt/ros/${ROS_CI_VERSION}/setup.bash" >> ~/.bashrc
-    - source ~/.bashrc
-# Add required PR2/desktop packages.
-# (These can be compressed into one command, but this is easier to maintain.)
-    - sudo apt-get install ${ROS_CI_PREFIX}pr2-desktop
-    - sudo apt-get install ${ROS_CI_PREFIX}pr2-interactive-manipulation
-    - sudo apt-get install ${ROS_CI_PREFIX}simulator-gazebo
-    - sudo apt-get install ${ROS_CI_PREFIX}pr2-simulator
-    - sudo apt-get install ${ROS_CI_PREFIX}openni-launch
-# Add required python packages
-    - pip install -r requirements.txt --use-mirrors
-# Initialize ROS workspace
-    - cd ~/rosbuild_ws
-    - rosws init . /open/ros/${ROS_CI_VERSION}
-# Make messages
-    - cd pr2_pbd
-    - rosmake
-# Command to run tests
-script:
-    - rostest pr2_pbd_interaction test_endtoend.test
+# Allows the python virtualenv to use apt-get installed packages, which
+# is essential (as ROS recommends this and pip doesn't seem to contain
+# all packages, or contains them with errors).
+virtualenv:
+    system_site_packages: true
+# Allow caching of debian (apt-get) packages. This means they're cached
+# on Travis, so we still have to download/install them, but it will be
+# faster than going to the ubuntu repositories.
+cache: apt
+# Git settings.
 # NOTE(mbforbes): Change this to groovy-devel when moving to PR2 repo.
 branches:
     only:
         - style
+# Before anything, see if we can get the mongoDB troubles out of the way.
+# Note that this is a Travis-CI specific problem; this is not needed in
+# general.
+before_install:
+    - sudo apt-get --purge remove mongodb-10gen
+
+# Commands to install dependencies
+# --------------------------------
+install:
+# Update package list and install new versions.
+    - sudo apt-get update
+    - sudo apt-get upgrade
+# First, move code to correct place. Also Travis-CI specific.
+    - mkdir -p ~/rosbuild_ws
+    - cd ..; mv pr2_pbd ~/rosbuild_ws/
+# Settings to make installing script more general.
+    - export ROS_CI_DESKTOP=`lsb_release -cs`  # e.g. 'precise'
+    - export ROS_CI_VERSION=groovy  # e.g. 'groovy'
+    - export ROS_CI_PREFIX=ros-${ROS_CI_VERSION}-  # e.g. 'ros-groovy-'
+# Exports for ROS
+    - export ROS_HOSTNAME=localhost
+    - export ROS_MASTER_URI=http://localhost:11311
+    - export ROBOT=sim
+# Add ROS repositories, setup keys, update, install, init basics
+    - echo "deb http://packages.ros.org/ros/ubuntu $ROS_CI_DESKTOP main" | sudo tee /etc/apt/sources.list.d/ros-latest.list
+    - wget http://packages.ros.org/ros.key -O - | sudo apt-key add -
+    - yes | sudo apt-get -y update
+    - yes | sudo apt-get -y install ${ROS_CI_PREFIX}desktop-full
+    - sudo rosdep init
+    - rosdep update
+# Environment setup
+    - source /opt/ros/${ROS_CI_VERSION}/setup.bash
+# Add required debian and python packages with apt-get and pip.
+    - cd ~/rosbuild_ws/pr2_pbd
+    - yes | sudo apt-get -y install $(< packages.txt)
+    - pip install -r requirements.txt
+# Initialize ROS workspace, setup, set path
+    - cd ~/rosbuild_ws
+    - rosws init . /opt/ros/${ROS_CI_VERSION}
+    - source ~/rosbuild_ws/setup.bash
+    - export ROS_PACKAGE_PATH=~/rosbuild_ws/:/opt/ros/${ROS_CI_VERSION}/share:/opt/ros/${ROS_CI_VERSION}/stacks
+# Make messages
+    - cd pr2_pbd
+    - rosmake
+
+# Command to run tests
+# --------------------
+script:
+# Real tests: crash because of Gazebo bugs
+#    - roslaunch pr2_pbd_interaction simulated_robot.launch gui:=false
+# Debug: trying to just run gazebo's table object launch (Gazebo bugs)
+#    - rostest pr2_pbd_interaction test_endtoend.test
+# Linter: last resort to getting *something* useful to run on Travis :-)
+# NOTE(mbforbes): Add more files to this as they're completed.
+    - pep8 pr2_pbd_interaction/src/interaction.py

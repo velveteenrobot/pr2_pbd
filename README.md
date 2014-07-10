@@ -19,66 +19,90 @@ We are currently (this text written summer 2014) working on ROS Hydro and Catkin
 
 
 ## Installing
+Note: Unless otherwise stated, all commands should be run from the root of this repository.
 
-### ROS Software
-- [Install ROS Groovy](http://wiki.ros.org/groovy/Installation/Ubuntu) (ros-groovy-desktop-full) on your Ubuntu 12.04 (precise) machine.
+If you go through these instructions and your installation is not working, check out the `install:` section of our `.travis.yml` build script. It contains all commands needed to get up-and-running from a barebones Ubuntu 12.04 installation.
 
-- Use apt-get to install the following ROS packages:
-	- `ros-groovy-pr2-desktop`
-	- `ros-groovy-interactive-manipulation`
-	- `ros-groovy-simulator-gazebo`
-	- `ros-groovy-pr2-simulator`
-	- `ros-groovy-openni-launch`
-
-- As a note, [here is a list](https://gist.github.com/mbforbes/a1580f5434e35c597108) of all packages you may need on your desktop; if it's not running, check against that list.
-
-### PbD Code
-Assuming you've set up a rosbuild workspace in the location `~/rosbuild_ws`, and you've correctly `source`'d the correct ROS Groovy setup files, you do the following:
-
+### Ubuntu setup
+An up-to-date Ubuntu 12.04 machine should do fine, but just to make sure that you've got everything you need, run the following commands:
 ```bash
-$ cd ~/rosbuild_ws  # or your rosbuild workspace
-$ git clone git@github.com:PR2/pr2_pbd.git  # or your fork
-$ cd pr2_pbd
-$ rosmake  # generate message classes
+# Update software list and install new versions.
+$ sudo apt-get update
+$ sudo apt-get upgrade
+
+# Install python requirements
+$ sudo apt-get install python2.7 python-pip
 ```
 
-Note that this needs to be done on **both** the PR2 _and_ your desktop machine.
+### ROS software
+[Install ROS Groovy](http://wiki.ros.org/groovy/Installation/Ubuntu) (pick `ros-groovy-desktop-full`) on your Ubuntu 12.04 (precise) machine. Make sure you follow all steps; we have omitted here everything contained in that guide.
 
-### Python packages
-If you don't have Python, install Python 2.7
+Additional required debian packages are listed in `packages.txt` and can be installed with apt-get:
+
 ```bash
-$ sudo apt-get install python2.7
+$ yes | sudo apt-get -y install $(< packages.txt)
 ```
 
-If you don't have pip, install pip
+### ROS setup
+
+#### Both PR2 (`c1`) and desktop
+First, you need to setup a `rosbuild` workspace.
+
 ```bash
-$ sudo apt-get install python-pip
+$ mkdir -p ~/rosbuild_ws  # Create your rosbuild workspace
+$ cd ~/rosbuild_ws && rosws init . /opt/ros/groovy  # Enter it and initialize
 ```
 
-The required pip packages are listed in `requirements.txt`. From the root of the repository, run:
+#### PR2 (`c1`) specific
+You need to set environment variables. In addition to running these commands, you should put them in your `~/.bashrc` file so terminals automatically run them.
+
 ```bash
-$ pip install -r requirements.txt --use-mirrors
+$ source /opt/ros/groovy/setup.sh
+$ source ~/rosbuild_ws/setup.bash
+$ export ROS_ENV_LOADER=/etc/ros/groovy/env.sh
+$ export ROS_PACKAGE_PATH=~/rosbuild_ws:$ROS_PACKAGE_PATH
 ```
 
-
-
-## Running
-
-### Prerequisites
-Here we assume that, in addition to having ROS Groovy and your rosbuild workspace setup correctly, by default you have the following environment variables **on your desktop**:
+#### Desktop specific
+You need to set environment variables. In addition to running these commands, you should put them in your `~/.bashrc` file so terminals automatically run them.
 
 ```bash
+$ source ~/rosbuild_ws/setup.bash
+$ export ROS_PACKAGE_PATH=~/rosbuild_ws/:$ROS_PACKAGE_PATH
 $ export ROS_HOSTNAME=localhost
 $ export ROS_MASTER_URI=http://localhost:11311
 $ export ROBOT=sim
 $ export MY_IP=$(/sbin/ifconfig eth0 | awk '/inet/ { print $2 } ' | sed -e s/addr://)
 ```
 
-and that you have some way of pointing your desktop to look at the PR2 (`c1`) as the ROS master, such as this alias:
+Finally, for running on the PR2, you need some way of pointing your desktop to look at the PR2 (`c1`) as the ROS master. Put this alias in your `~/.bashrc` or `~/.bash_aliases`:
 
 ```bash
 $ alias realrobot='unset ROBOT; unset ROS_HOSTNAME; export ROS_MASTER_URI=http://c1:11311; export ROS_IP=$MY_IP'
 ```
+
+### Python setup
+The required python packages are listed in `requirements.txt` and can be installed with pip:
+
+```bash
+$ pip install -r requirements.txt
+```
+Note that if you use python with virtualenv, you want it to still find the apt-get installed python packages, as not all are available or work property with pip. Do this by starting virtualenv with: `virtualenv --system-site-packages ENV` ([more info](http://virtualenv.readthedocs.org/en/latest/virtualenv.html#the-system-site-packages-option)).
+
+### PbD code
+Do the following to checkout and make the PBD code:
+
+```bash
+$ cd ~/rosbuild_ws  # or your rosbuild workspace
+$ git clone git@github.com:PR2/pr2_pbd.git  # or your fork
+$ cd pr2_pbd && rosmake  # generate message classes
+```
+
+Note that this needs to be done on **both** the PR2 _and_ your desktop machine.
+
+
+
+## Running
 
 ### On the PR2
 
@@ -90,16 +114,17 @@ $ robot claim; robot stop; robot start  # gets the robot
 # Before continuing, complete Terminal 1 on desktop to ensure the PR2 is ready.
 $ roslaunch pr2_pbd_interaction pbd_backend.launch
 ```
+
 #### Commands on desktop
 ```bash
 # Terminal 1: PR2 dashboard
-$ realrobot  # see 'Prerequisites' section above
+$ realrobot  # points ROS to PR2
 $ rosrun rqt_pr2_dashboard rqt_pr2_dashboard  # dashboard to monitor PR2
 # Make sure both runstops are OK (far right icon), and motors OK (red gear icon)
 
 # Terminal 2: PbD frontend
-$ realrobot  # see 'Prerequisites' section above
-$ roslaunch pr2_pbd_interaction pbd_frontend.launch
+$ realrobot  # points ROS to PR2
+$ roslaunch pr2_pbd_interaction pbd_frontend.launch  # rviz, rqt, speech
 ```
 
 ### On desktop only (simulation)
@@ -114,9 +139,15 @@ $ roslaunch pr2_pbd_interaction pbd_simulation_stack.launch
 
 
 ## Tests
-Run the tests with `rostest pr2_pbd_interaction test_endtoend.test`. View code coverage by opening `~/.ros/htmlcov/index.html` with a web broswer. With an acout setup at [Coveralls](https://coveralls.io), edit the `.coveralls.yml` with your repo_token, and track coverage there by running `coveralls --data_file ~/.ros/.coverage`.
+0. Lint your Python to pep8 standards by running `pep8 file1 file2 ...`.
 
-To do all of these steps automatically (opening with Google Chrome, assuming Coveralls and `.coveralls.yml` setup), we have provided a script:
+0. Run the tests with `rostest pr2_pbd_interaction test_endtoend.test`.
+
+0. View code coverage by opening `~/.ros/htmlcov/index.html` with a web broswer.
+
+0. With an acout setup at [Coveralls](https://coveralls.io), edit the `.coveralls.yml` with your repo_token, and track coverage there by running `coveralls --data_file ~/.ros/.coverage`.
+
+To do all of these steps automatically (linting common directories, opening coverage report with Google Chrome, assuming Coveralls and `.coveralls.yml` correctly setup), we have provided a script:
 ```bash
 $ roscd pr2_pbd_interaction; ./scripts/test_and_coverage.sh
 ```

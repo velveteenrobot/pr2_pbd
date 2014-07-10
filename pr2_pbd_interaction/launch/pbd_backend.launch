@@ -6,7 +6,7 @@
 	<!-- These arguments can be passed in. -->
 	<!-- ================================= -->
 	<!-- Should we reload a previously saved experiment state?  -->
-	<arg name="isReload" default="False" />
+	<arg name="isReload" default="false" />
 
 	<!-- Where is experiment state stored? -->
 	<arg name="dataRoot" default="$(env HOME)" />
