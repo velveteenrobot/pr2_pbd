@@ -27,7 +27,7 @@ from sensor_msgs.msg import JointState
 from arm_navigation_msgs.srv import FilterJointTrajectory
 from kinematics_msgs.srv import (
     GetKinematicSolverInfo, GetPositionIK, GetPositionIKRequest)
-from pr2_mechanism_msgs.srv import SwitchController
+from pr2_mechanism_msgs.srv import SwitchController, SwitchControllerRequest
 from pr2_controllers_msgs.msg import (
     JointTrajectoryAction, JointTrajectoryGoal, Pr2GripperCommandAction,
     Pr2GripperCommandGoal)
@@ -585,7 +585,7 @@ class Arm:
             self.switch_service(
                 start_controllers,
                 stop_controllers,
-                SwitchController.BEST_EFFORT  # strictness
+                SwitchControllerRequest.BEST_EFFORT  # strictness
             )
             self.arm_mode = mode
         except rospy.ServiceException:

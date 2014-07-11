@@ -61,7 +61,7 @@ class Arms:
         # Create two arms; initialize their individual state.
         for side in [Side.RIGHT, Side.LEFT]:
             arm = Arm(side)
-            Arm.arms[side] = arm
+            Arms.arms[side] = arm
             arm.set_mode(ArmMode.HOLD)
             arm.check_gripper_state()
             arm.close_gripper()
