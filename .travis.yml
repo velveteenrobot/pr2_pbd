@@ -72,4 +72,5 @@ script:
 #    - rostest pr2_pbd_interaction test_endtoend.test
 # Linter: last resort to getting *something* useful to run on Travis :-)
 # NOTE(mbforbes): Add more files to this as they're completed.
-    - pep8 pr2_pbd_interaction/src/interaction.py pr2_pbd_interaction/test/test_endtoend.py
+    - roscd pr2_pbd_interaction
+    - pep8 src/interaction.py src/arm.py src/arms.py test/test_endtoend.py

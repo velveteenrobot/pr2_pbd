@@ -770,7 +770,8 @@ class Arm:
         Returns:
             bool
         '''
-        return (self.get_mode() == ArmMode.HOLD
+        return (
+            self.get_mode() == ArmMode.HOLD
             and len(self.arm_movement) == self.movement_buffer_size
             and self.get_movement() > ARM_MOVEMENT_THRESHOLD)
 
