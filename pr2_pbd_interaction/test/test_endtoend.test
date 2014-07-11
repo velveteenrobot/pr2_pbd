@@ -18,5 +18,8 @@
 
 	<!-- Run the tests themselves. -->
 	<test test-name="test_endtoend" pkg="pr2_pbd_interaction" type="test_endtoend.py" ns="pr2_pbd_interaction" time-limit="3600.0">
+		<!-- Use simulation time so that Gazebo doesn't yell
+		constantly. -->
+		<param name="/use_sim_time" value="true" />
 	</test>
 </launch>
