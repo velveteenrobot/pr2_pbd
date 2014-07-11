@@ -23,8 +23,8 @@ from World import World
 from RobotSpeech import RobotSpeech
 from Session import Session
 from Response import Response
-from Arms import Arms
-from Arm import ArmMode
+from arms import Arms
+from arm import ArmMode
 from pr2_pbd_interaction.msg import (
     ArmState, GripperState, ActionStep, ArmTarget, Object, GripperAction,
     ArmTrajectory, ExecutionStatus, GuiCommand, Side)
