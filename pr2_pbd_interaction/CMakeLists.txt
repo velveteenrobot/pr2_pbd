@@ -30,4 +30,5 @@ rosbuild_add_roslaunch_check( launch/simulated_robot.launch ROBOT=sim ROS_ENV_LO
 rosbuild_add_roslaunch_check( launch/pbd_simulation_stack.launch ROBOT=sim ROS_ENV_LOADER=/etc/ros/env.sh )
 
 # Add tests
-rosbuild_add_rostest(test/test_endtoend.test)
+rosbuild_add_rostest(test/test_endtoend_desktop.test)
+rosbuild_add_rostest(test/test_endtoend_robot.test)
