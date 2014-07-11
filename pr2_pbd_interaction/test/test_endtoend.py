@@ -20,6 +20,9 @@ import roslib
 roslib.load_manifest(PKG)
 import rospy
 
+# System builtins
+import sys
+
 # ROS builtins
 from sensor_msgs.msg import JointState
 from actionlib import SimpleActionClient
@@ -695,6 +698,8 @@ class TestEndToEnd(unittest.TestCase):
 
 if __name__ == '__main__':
     rospy.init_node('test_endtoend')
+    rospy.loginfo(str(sys.argv))
+
     import rostest
     # Let the rest of the system get initialized
     rospy.loginfo("Waiting for system to start up.")
