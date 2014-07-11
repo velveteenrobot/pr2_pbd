@@ -22,6 +22,7 @@ import rospy
 
 # System builtins
 import sys
+from collections import Counter
 
 # ROS builtins
 from sensor_msgs.msg import JointState
@@ -30,6 +31,7 @@ from trajectory_msgs.msg import JointTrajectoryPoint
 
 # ROS 3rd party
 from pr2_controllers_msgs.msg import JointTrajectoryAction, JointTrajectoryGoal
+from sound_play.msg import SoundRequest
 
 # Local
 from pr2_pbd_interaction.msg import Side, GuiCommand, GripperState
@@ -53,9 +55,16 @@ PAUSE_STARTUP = 8.0
 # unseen for some reason.
 PAUSE_SECONDS = 2.0
 
+# How long to allow for a command response to come in.
+CMD_RESP_TIMEOUT = 2.0
+
 # How long to wait in-between querying the recorded joint states for its
 # value. Note that the joints themselves publish updates at ~90Hz.
 JOINT_REFRESH_PAUSE_SECONDS = 0.1
+
+# How long to wait in-between querying the robot speech response tracker
+# for an update.
+RESPONSE_REFRESH_PAUSE_SECONDS = 0.1
 
 # Sides (right and left)
 SIDES = ['r', 'l']
@@ -119,6 +128,7 @@ TOPIC_INT_PING = '/interaction_ping'
 TOPIC_CMD = '/recognized_command'
 TOPIC_GUICMD = '/gui_command'
 TOPIC_JOINTS = '/joint_states'
+TOPIC_SPEECH = '/robotsound'
 ARM_CONTROLLER_POSTFIX = '_arm_controller/joint_trajectory_action'
 
 
@@ -150,6 +160,9 @@ class TestEndToEnd(unittest.TestCase):
             self.arm_control_joints[side] = [
                 side + postfix for postfix in ARM_CONTROL_JOINT_POSTFIXES]
 
+        # Set up Counter to track robot speech.
+        self.speech_tracker = Counter()
+
         # Create our ROS message machinery.
         # Keep alive ping.
         self.ping_srv = rospy.ServiceProxy(TOPIC_INT_PING, Ping)
@@ -159,6 +172,8 @@ class TestEndToEnd(unittest.TestCase):
         self.gui_command_pub = rospy.Publisher(TOPIC_GUICMD, GuiCommand)
         # For tracking gripper/arm states.
         rospy.Subscriber(TOPIC_JOINTS, JointState, self.joint_states_cb)
+        # For tracking robot speech (its responses).
+        rospy.Subscriber(TOPIC_SPEECH, SoundRequest, self.speech_heard_cb)
         # Set up controllers to move arms.
         self.arm_controllers = {}
         for side in SIDES:
@@ -539,6 +554,19 @@ class TestEndToEnd(unittest.TestCase):
         self.ping_srv()
         self.assertTrue(True, "Interaction node should be alive.")
 
+    def speech_heard_cb(self, sound_request):
+        '''Called when the robot requests speech; tracks responses.
+
+        Args:
+            sound_request (SoundRequest): Request robot sent for speech
+                to be played.
+        '''
+        # We only track things the robot is going to say (text).
+        if sound_request.sound == SoundRequest.SAY:
+            # Text is passed in arg.
+            text = sound_request.arg
+            self.speech_tracker[text] += 1
+
     def joint_states_cb(self, joint_state):
         '''Tracks relevant joint states.
 
@@ -551,6 +579,64 @@ class TestEndToEnd(unittest.TestCase):
         for joint in RELEVANT_JOINTS:
             if joint in names:
                 self.joint_positions[joint] = positions[names.index(joint)]
+
+    def cmd_assert_response(self, command, responses, timeout):
+        '''Issues a command and asserts that one of the valid responses
+        is heard within timout seconds.
+
+        Args:
+            command (str): One of Command.*
+            responses ([str]): Each element is one of RobotSpeech.*
+            timeout (float): How many seconds to wait before failing.
+        '''
+        # Get number of times response was heard previously.
+        prev_resp_map = {}
+        for response in responses:
+            prev_resp_map[response] = self.speech_tracker[response]
+
+        # Issue the command
+        self.command_pub.publish(Command(command))
+
+        # Check if response count increased once before waiting for
+        # timeout.
+        if self.any_resp_inc(prev_resp_map, responses):
+            return
+
+        # Wait for timeout, checking if response heard.
+        timeout_dur = rospy.Duration(timeout)
+        start = rospy.Time.now()
+        while rospy.Time.now() - start < timeout_dur:
+            if self.any_resp_inc(prev_resp_map, responses):
+                return
+            rospy.sleep(RESPONSE_REFRESH_PAUSE_SECONDS)
+
+        # Check one last time before failing.
+        if self.any_resp_inc(prev_resp_map, responses):
+            return
+
+        # Not heard! Fail.
+        self.assertFalse(
+            True,
+            "Never heard expected response: %s" %
+            (response)
+        )
+
+    def any_resp_inc(self, prev_resp_map, responses):
+        '''Returns whether any response in responses was seen exaclty
+        once more than is recorded in prev_resp_map.
+
+        Args:
+            prev_resp_map ({str: int}): Map of previous responses to
+                their counts.
+            responses ([str]): Any of the possible responses that could
+                have been heard.
+        '''
+        for response in responses:
+            # Must match exactly one greater than recorded previously.
+            if self.speech_tracker[response] == prev_resp_map[response] + 1:
+                return True
+        # None match.
+        return False
 
     def are_floats_close(self, a, b, epsilon):
         '''Checks whether two floats are within epsilon of each
@@ -672,7 +758,7 @@ class TestEndToEnd(unittest.TestCase):
             return
 
         # Check / sleep through timeout
-        timeout_dur = rospy.Duration.from_sec(timeout)
+        timeout_dur = rospy.Duration(timeout)
         start = rospy.Time.now()
         while rospy.Time.now() - start < timeout_dur:
             if self.are_floats_close(
