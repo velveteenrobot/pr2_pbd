@@ -817,8 +817,8 @@ class Interaction:
             Arms.get_ee_state(Side.RIGHT),  # (Pose)
             Arms.get_ee_state(Side.LEFT)]  # (Pose)
         joint_poses = [
-            Arms.get_joint_state(Side.RIGHT),  # ([float64])
-            Arms.get_joint_state(Side.LEFT)]  # ([float64])
+            Arms.get_joint_positions(Side.RIGHT),  # ([float64])
+            Arms.get_joint_positions(Side.LEFT)]  # ([float64])
 
         states = [None, None]
         rel_ee_poses = [None, None]
