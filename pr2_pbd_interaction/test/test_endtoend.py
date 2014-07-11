@@ -699,23 +699,15 @@ class TestEndToEnd(unittest.TestCase):
 if __name__ == '__main__':
     rospy.init_node('test_endtoend')
 
-    # Provide options for running with rostest vs on real robot.
-    if len(sys.argv) > 1 and sys.argv[1] == 'robot':
-        # Real robot: can't use rostest fixture. Manually run
-        # pbd_backend node then run this file.
-        rospy.loginfo("Running tests on real robot.")
-        rospy.loginfo("Assuming system already started up.")
-        unittest.main()
-    else:
-        # Simulation; can be run with rostest.
-        import rostest
-        # Let the rest of the system get initialized
-        rospy.loginfo("Running tests in simulation.")
-        rospy.loginfo("Waiting for system to start up.")
-        rospy.sleep(PAUSE_STARTUP)
-        rospy.loginfo("Done waiting for system to start up.")
-        rostest.rosrun(
-            PKG,  # package_name
-            'test_end_to_end',  # test_name
-            TestEndToEnd,  # test_case_class
-        )
+    # Simulation; can be run with rostest.
+    import rostest
+    # Let the rest of the system get initialized
+    rospy.loginfo("Running tests in simulation.")
+    rospy.loginfo("Waiting for system to start up.")
+    rospy.sleep(PAUSE_STARTUP)
+    rospy.loginfo("Done waiting for system to start up.")
+    rostest.rosrun(
+        PKG,  # package_name
+        'test_end_to_end',  # test_name
+        TestEndToEnd,  # test_case_class
+    )
