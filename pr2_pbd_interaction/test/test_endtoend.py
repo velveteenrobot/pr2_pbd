@@ -118,6 +118,7 @@ TOPIC_GUICMD = '/gui_command'
 TOPIC_JOINTS = '/joint_states'
 ARM_CONTROLLER_POSTFIX = '_arm_controller/joint_trajectory_action'
 
+
 # ######################################################################
 # Classes
 # ######################################################################
