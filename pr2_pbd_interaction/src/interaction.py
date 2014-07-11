@@ -250,29 +250,7 @@ class Interaction:
                 rospy.logwarn(
                     'Ignoring speech command during execution: ' + strCmd)
         else:
-            switch_command = 'SWITCH_TO_ACTION'
-            # The 'swtich to action' command has the action number at
-            # the end of it, so we need to check for that.
-            if switch_command in strCmd:
-                # Pull of the action number.
-                action_no = strCmd[len(switch_command):]
-                action_no = int(action_no)
-                # TODO(mbforbes): Shouldn't this check be about the
-                # action number existing rather than having 1 action?
-                if self.session.n_actions() > 0:
-                    self.session.switch_to_action(
-                        action_no, self.world.get_frame_list())
-                    response = Response(
-                        self._empty_response,
-                        [RobotSpeech.SWITCH_SKILL + str(action_no),
-                            GazeGoal.NOD])
-                else:
-                    response = Response(
-                        self._empty_response,
-                        [RobotSpeech.ERROR_NO_SKILLS, GazeGoal.SHAKE])
-                response.respond()
-            else:
-                rospy.logwarn('This command (' + strCmd + ') is unknown.')
+            rospy.logwarn('This command (' + strCmd + ') is unknown.')
 
     def _gui_command_cb(self, command):
         '''Callback for when a GUICommand is received.
@@ -817,8 +795,8 @@ class Interaction:
             Arms.get_ee_state(Side.RIGHT),  # (Pose)
             Arms.get_ee_state(Side.LEFT)]  # (Pose)
         joint_poses = [
-            Arms.get_joint_state(Side.RIGHT),  # ([float64])
-            Arms.get_joint_state(Side.LEFT)]  # ([float64])
+            Arms.get_joint_positions(Side.RIGHT),  # ([float64])
+            Arms.get_joint_positions(Side.LEFT)]  # ([float64])
 
         states = [None, None]
         rel_ee_poses = [None, None]
