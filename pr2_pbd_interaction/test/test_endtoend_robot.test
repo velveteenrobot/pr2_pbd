@@ -1,0 +1,13 @@
+<launch>
+	<!-- This file runs the end-to-end PbD tests on the real robot. It
+	normally doesn't use a frontend. -->
+
+	<!-- Bring up the PbD backend. -->
+	<include file="$(find pr2_pbd_interaction)/launch/pbd_backend.launch">
+		<arg name="coverage" value="true" />
+	</include>
+
+	<!-- Run the tests themselves. -->
+	<test test-name="test_endtoend" pkg="pr2_pbd_interaction" type="test_endtoend.py" ns="pr2_pbd_interaction" time-limit="3600.0">
+	</test>
+</launch>
