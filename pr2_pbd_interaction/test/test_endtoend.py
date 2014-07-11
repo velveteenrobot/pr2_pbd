@@ -700,7 +700,7 @@ if __name__ == '__main__':
     rospy.init_node('test_endtoend')
 
     # Provide options for running with rostest vs on real robot.
-    if len(sys.argv) > 1 && sys.argv[1] == 'robot':
+    if len(sys.argv) > 1 and sys.argv[1] == 'robot':
         # Real robot: can't use rostest fixture. Manually run
         # pbd_backend node then run this file.
         rospy.loginfo("Running tests on real robot.")
