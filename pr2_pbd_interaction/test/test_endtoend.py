@@ -699,6 +699,9 @@ class TestEndToEnd(unittest.TestCase):
 if __name__ == '__main__':
     rospy.init_node('test_endtoend')
 
+    unittest.main()
+    sys.exit(0)
+
     # Simulation; can be run with rostest.
     import rostest
     # Let the rest of the system get initialized
