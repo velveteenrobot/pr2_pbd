@@ -297,14 +297,10 @@ class ProgrammedAction:
         ''' Makes the interactive marker for the indicated action
         step selected, by showing the 6D controls'''
         n_steps = self.n_frames()
-        # TODO(mbforbes): Is this 0- or 1-based indexing? It must switch
-        # at some point. This should be clear with variable names...
-        if step_id <= n_steps:
-            self.marker_click_cb(step_id, True)
-        else:
-            rospy.logwarn(
-                "Can't get step " + str(step_id) +'; only have ' +
-                str(n_steps) + ' steps.')
+        # TODO(mbforbes): Is this 0- or 1-based indexing? Or some
+        # calculated global ID? This should be made clear with variable
+        # names.
+        self.marker_click_cb(step_id, True)
 
     def initialize_viz(self, object_list):
         '''Initialize visualization'''

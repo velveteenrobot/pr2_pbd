@@ -830,6 +830,7 @@ class Interaction:
     def _end_execution(self):
         '''Says a response and performs a gaze action for when an action
         execution ends.'''
+        rospy.loginfo("Execution ended. Status: " + str(self.arms.status))
         if self.arms.status == ExecutionStatus.SUCCEEDED:
             # Execution completed successfully.
             Response.say(RobotSpeech.EXECUTION_ENDED)

@@ -46,7 +46,7 @@ class RobotSpeech:
 
     # Mucking with steps (poses).
     STEP_RECORDED = 'Pose saved.'
-    SKILL_EMPTY = 'Skill has no poses to delete.'
+    SKILL_EMPTY = 'Action has no poses to delete.'
     LAST_POSE_DELETED = 'Last pose deleted.'
     SKILL_CLEARED = 'All poses deleted.'
 

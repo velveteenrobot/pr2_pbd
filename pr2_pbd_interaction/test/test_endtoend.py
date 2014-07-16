@@ -59,6 +59,12 @@ PAUSE_SECONDS = 2.0
 # How long to allow for a command response to come in.
 DEFAULT_CMD_RESP_TIMEOUT = 2.0
 
+# How long to allow for a "record object pose" operation.
+RECORD_OBJECT_POSE_TIMEOUT = 20.0
+
+# How long to allow for the "end of execution" reporting robot speech.
+EXECUTION_END_RESPONSE_TIMEOUT = 5.0
+
 # How long to wait in-between querying the recorded joint states for its
 # value. Note that the joints themselves publish updates at ~90Hz.
 JOINT_REFRESH_PAUSE_SECONDS = 0.1
@@ -208,7 +214,7 @@ class TestEndToEnd(unittest.TestCase):
     # Tests
     # ##################################################################
 
-    @unittest.skip("haven't converted to response assertions yet")
+    @unittest.skip("tmp")
     def test_a_noaction_branches(self):
         '''This ideally exercises the "sorry, no action created yet"
         code that prevents requests from going through.
@@ -219,95 +225,149 @@ class TestEndToEnd(unittest.TestCase):
         each test case (it's also difficult to launch ROS nodes from
         within testing code).
 
-        The one solace for this "test should run first" test, which is
-        typically bad practice (and using "_a_" to make it run first,
-        which is test runner-dependent), is that this test will still
-        pass if other tests run first; it merely won't exercise the
-        code that it's aiming to.
+        If this test does not run first because the test infracture
+        changes, the code should be changed to just publish commands
+        rather than check their response (the commands should all
+        'work', i.e. not crash the system, but their responses will
+        change depending on the order of the tests).
         '''
         # Ensure things are ready to go.
         self.check_alive()
 
         # Switch to nonexistant action
-        self.gui_command_pub.publish(
-            GuiCommand(GuiCommand.SWITCH_TO_ACTION, 50))
+        self.guicmd_assert_response(
+            GuiCommand.SWITCH_TO_ACTION, 50, [RobotSpeech.ERROR_NO_SKILLS])
 
-        # Switch to nonexistant step
-        self.gui_command_pub.publish(
-            GuiCommand(GuiCommand.SELECT_ACTION_STEP, 50))
+        # Switch to nonexistant step. Note: The robot does not respond
+        # to this command, it just affects the GUI, so here we're just
+        # testing for the lack of a crash.
+        self.guicmd_assert_response(
+            GuiCommand.SELECT_ACTION_STEP, 50, [RobotSpeech.ERROR_NO_SKILLS])
 
-        # Switch around actions
-        self.command_pub.publish(Command(Command.NEXT_ACTION))
-        self.command_pub.publish(Command(Command.PREV_ACTION))
+        # Switch around (nonexistant) actions
+        self.cmd_assert_response(
+            Command.NEXT_ACTION, [RobotSpeech.ERROR_NO_SKILLS])
+        self.cmd_assert_response(
+            Command.PREV_ACTION, [RobotSpeech.ERROR_NO_SKILLS])
 
         # Do naughty things within nonexistant action.
-        self.command_pub.publish(Command(Command.DELETE_LAST_STEP))
-        self.command_pub.publish(Command(Command.DELETE_ALL_STEPS))
-        self.command_pub.publish(Command(Command.START_RECORDING_MOTION))
-        self.command_pub.publish(Command(Command.SAVE_POSE))
+        self.cmd_assert_response(
+            Command.DELETE_LAST_STEP, [RobotSpeech.ERROR_NO_SKILLS])
+        self.cmd_assert_response(
+            Command.DELETE_ALL_STEPS, [RobotSpeech.ERROR_NO_SKILLS])
+        self.cmd_assert_response(
+            Command.START_RECORDING_MOTION, [RobotSpeech.ERROR_NO_SKILLS])
+        self.cmd_assert_response(
+            Command.SAVE_POSE, [RobotSpeech.ERROR_NO_SKILLS])
         # No explicit check for record object pose, but it doesn't hurt
-        self.command_pub.publish(Command(Command.RECORD_OBJECT_POSE))
-        self.command_pub.publish(Command(Command.EXECUTE_ACTION))
+        self.cmd_assert_response(
+            Command.RECORD_OBJECT_POSE, [
+                RobotSpeech.START_STATE_RECORDED,
+                RobotSpeech.OBJECT_NOT_DETECTED,
+            ],
+            RECORD_OBJECT_POSE_TIMEOUT
+        )
+        self.cmd_assert_response(
+            Command.EXECUTE_ACTION, [RobotSpeech.ERROR_NO_SKILLS])
 
         # Now make a single action and try bad switches.
-        self.command_pub.publish(Command(Command.CREATE_NEW_ACTION))
-        self.command_pub.publish(Command(Command.NEXT_ACTION))
-        self.command_pub.publish(Command(Command.PREV_ACTION))
+        self.cmd_assert_response(
+            Command.CREATE_NEW_ACTION, [RobotSpeech.SKILL_CREATED])
+        self.cmd_assert_response(
+            Command.NEXT_ACTION, [RobotSpeech.ERROR_NEXT_SKILL])
+        self.cmd_assert_response(
+            Command.PREV_ACTION, [RobotSpeech.ERROR_PREV_SKILL])
 
         # Make sure nothing's crashed.
         self.check_alive()
 
-    @unittest.skip("haven't converted to response assertions yet")
+    @unittest.skip("tmp")
     def test_stop_execution(self):
         '''Test name says it all. Extremely simple.'''
         # Ensure things are ready to go.
         self.check_alive()
 
         # Stop execution while not executing, no steps.
-        self.command_pub.publish(Command(Command.CREATE_NEW_ACTION))
-        self.command_pub.publish(Command(Command.STOP_EXECUTION))
+        self.cmd_assert_response(
+            Command.CREATE_NEW_ACTION, [RobotSpeech.SKILL_CREATED])
+        self.cmd_assert_response(
+            Command.STOP_EXECUTION, [RobotSpeech.ERROR_NO_EXECUTION])
 
         # Try starting and stopping (shouldn't run as no steps).
-        self.command_pub.publish(Command(Command.EXECUTE_ACTION))
-        self.command_pub.publish(Command(Command.STOP_EXECUTION))
+        self.cmd_assert_response(
+            Command.EXECUTE_ACTION, [RobotSpeech.EXECUTION_ERROR_NOPOSES])
+        self.cmd_assert_response(
+            Command.STOP_EXECUTION, [RobotSpeech.ERROR_NO_EXECUTION])
 
-        # Make some steps, "stop.""
+        # Make some steps, "stop."
         for i in range(4):
-            self.command_pub.publish(Command(Command.SAVE_POSE))
-        self.command_pub.publish(Command(Command.STOP_EXECUTION))
+            self.cmd_assert_response(
+                Command.SAVE_POSE, [RobotSpeech.STEP_RECORDED])
+        self.cmd_assert_response(
+            Command.STOP_EXECUTION, [RobotSpeech.ERROR_NO_EXECUTION])
+
+        # We'll track the execution preempted response, but we get the
+        # pre-count here to avoid a race condition.
+        prev_stopped = self.build_prev_resp_map(
+            [RobotSpeech.EXECUTION_PREEMPTED])
 
         # Now actually start executing and stop.
-        self.command_pub.publish(Command(Command.EXECUTE_ACTION))
-        self.command_pub.publish(Command(Command.STOP_EXECUTION))
+        self.cmd_assert_response(
+            Command.EXECUTE_ACTION, [RobotSpeech.START_EXECUTION])
+        rospy.sleep(1)  # Pause slightly for it to start.
+        self.cmd_assert_response(
+            Command.STOP_EXECUTION, [RobotSpeech.STOPPING_EXECUTION])
+
+        # Make sure it reports execution preempted eventually.
+        self.assert_response(prev_stopped, EXECUTION_END_RESPONSE_TIMEOUT)
 
         # Make sure nothing's crashed.
         self.check_alive()
 
-    @unittest.skip("haven't converted to response assertions yet")
+    @unittest.skip("tmp")
     def test_freeze_relax_arm(self):
         '''Tests the freeze and relax arm functionality.'''
         # Ensure things are ready to go.
         self.check_alive()
 
-        # Relax both
-        self.command_pub.publish(Command(Command.RELAX_RIGHT_ARM))
-        self.command_pub.publish(Command(Command.RELAX_LEFT_ARM))
+        # Relax both (could be in either state to start).
+        self.cmd_assert_response(
+            Command.RELAX_RIGHT_ARM, [
+                RobotSpeech.RIGHT_ARM_RELEASED,
+                RobotSpeech.RIGHT_ARM_ALREADY_RELEASED
+            ]
+        )
+        self.cmd_assert_response(
+            Command.RELAX_LEFT_ARM, [
+                RobotSpeech.LEFT_ARM_RELEASED,
+                RobotSpeech.LEFT_ARM_ALREADY_RELEASED
+            ]
+        )
 
         # Relax *again*
-        self.command_pub.publish(Command(Command.RELAX_RIGHT_ARM))
-        self.command_pub.publish(Command(Command.RELAX_LEFT_ARM))
+        self.cmd_assert_response(
+            Command.RELAX_RIGHT_ARM, [RobotSpeech.RIGHT_ARM_ALREADY_RELEASED])
+        self.cmd_assert_response(
+            Command.RELAX_LEFT_ARM, [RobotSpeech.LEFT_ARM_ALREADY_RELEASED])
 
         # Freeze both
-        self.command_pub.publish(Command(Command.FREEZE_RIGHT_ARM))
-        self.command_pub.publish(Command(Command.FREEZE_LEFT_ARM))
+        self.cmd_assert_response(
+            Command.FREEZE_RIGHT_ARM, [RobotSpeech.RIGHT_ARM_HOLDING])
+        self.cmd_assert_response(
+            Command.FREEZE_LEFT_ARM, [RobotSpeech.LEFT_ARM_HOLDING])
 
         # Freeze *again*
-        self.command_pub.publish(Command(Command.FREEZE_RIGHT_ARM))
-        self.command_pub.publish(Command(Command.FREEZE_LEFT_ARM))
+        self.cmd_assert_response(
+            Command.FREEZE_RIGHT_ARM,
+            [RobotSpeech.RIGHT_ARM_ALREADY_HOLDING])
+        self.cmd_assert_response(
+            Command.FREEZE_LEFT_ARM,
+            [RobotSpeech.LEFT_ARM_ALREADY_HOLDING])
 
         # Make sure nothing's crashed.
         self.check_alive()
 
+    @unittest.skip("tmp")
     def test_gripper_open_close(self):
         '''Tests that issuing 'speech' commands to open and close the
         gripper puts them in the desired state.'''
@@ -352,6 +412,7 @@ class TestEndToEnd(unittest.TestCase):
         # Make sure nothing's crashed.
         self.check_alive()
 
+    @unittest.skip("tmp")
     def test_double_open_close(self):
         '''Tests that issuing a gripper open / close command twice
         doesn't break the robot and it stays in the desired state.
@@ -427,7 +488,6 @@ class TestEndToEnd(unittest.TestCase):
         # Make sure nothing's crashed.
         self.check_alive()
 
-    @unittest.skip("haven't converted to response assertions yet")
     def test_action_and_step_navigation(self):
         '''Tests creating / switching between actions, and creating /
         switching between steps.
@@ -440,22 +500,28 @@ class TestEndToEnd(unittest.TestCase):
         self.check_alive()
 
         # Create / switch between actions.
-        self.command_pub.publish(Command(Command.CREATE_NEW_ACTION))
-        self.command_pub.publish(Command(Command.CREATE_NEW_ACTION))
-        self.command_pub.publish(Command(Command.PREV_ACTION))
-        self.command_pub.publish(Command(Command.NEXT_ACTION))
+        self.cmd_assert_response(
+            Command.CREATE_NEW_ACTION, [RobotSpeech.SKILL_CREATED])
+        self.cmd_assert_response(
+            Command.CREATE_NEW_ACTION, [RobotSpeech.SKILL_CREATED])
+        self.cmd_assert_response(
+            Command.PREV_ACTION, [RobotSpeech.SWITCH_SKILL])
+        self.cmd_assert_response(
+            Command.NEXT_ACTION, [RobotSpeech.SWITCH_SKILL])
 
         # Try deleting last / all poses when there are none.
-        self.command_pub.publish(Command(Command.DELETE_LAST_STEP))
-        self.command_pub.publish(Command(Command.DELETE_ALL_STEPS))
+        self.cmd_assert_response(
+            Command.DELETE_LAST_STEP, [RobotSpeech.SKILL_EMPTY])
+        self.cmd_assert_response(
+            Command.DELETE_ALL_STEPS, [RobotSpeech.SKILL_EMPTY])
 
         # Make some steps.
-        self.command_pub.publish(Command(Command.SAVE_POSE))
-        self.command_pub.publish(Command(Command.SAVE_POSE))
-        self.command_pub.publish(Command(Command.SAVE_POSE))
-        self.command_pub.publish(Command(Command.SAVE_POSE))
+        for i in range(4):
+            self.cmd_assert_response(
+                Command.SAVE_POSE, [RobotSpeech.STEP_RECORDED])
 
-        # Switch between the steps.
+        # Switch between the steps. We don't track responses for these
+        # because there's no speech response, only a GUI change.
         self.gui_command_pub.publish(
             GuiCommand(GuiCommand.SELECT_ACTION_STEP, 3))
         self.gui_command_pub.publish(
@@ -466,36 +532,46 @@ class TestEndToEnd(unittest.TestCase):
             GuiCommand(GuiCommand.SELECT_ACTION_STEP, 1))
 
         # Navigate away/to the action, switch to a step
-        self.command_pub.publish(Command(Command.PREV_ACTION))
-        self.command_pub.publish(Command(Command.NEXT_ACTION))
+        self.cmd_assert_response(
+            Command.PREV_ACTION, [RobotSpeech.SWITCH_SKILL])
+        self.cmd_assert_response(
+            Command.NEXT_ACTION, [RobotSpeech.SWITCH_SKILL])
         self.gui_command_pub.publish(
             GuiCommand(GuiCommand.SELECT_ACTION_STEP, 2))
 
         # Delete a step and try to switch to it
-        self.command_pub.publish(Command(Command.DELETE_LAST_STEP))
+        self.cmd_assert_response(
+            Command.DELETE_LAST_STEP, [RobotSpeech.LAST_POSE_DELETED])
         self.gui_command_pub.publish(
             GuiCommand(GuiCommand.SELECT_ACTION_STEP, 4))
 
         # Delete all steps and try to switch to one
-        self.command_pub.publish(Command(Command.DELETE_ALL_STEPS))
+        self.cmd_assert_response(
+            Command.DELETE_ALL_STEPS, [RobotSpeech.SKILL_CLEARED])
         self.gui_command_pub.publish(
             GuiCommand(GuiCommand.SELECT_ACTION_STEP, 2))
 
         # Final switching (depending on test run order, may switch to
         # different actions than we created here; hence, this comes last
-        # in the test so we don't much with previously created steps.
+        # in the test so we don't muck with previously created steps.
         # Not that it matters... but nothing here should depend on the
         # existence or non-existence of steps).
-        self.gui_command_pub.publish(
-            GuiCommand(GuiCommand.SWITCH_TO_ACTION, 1))
+        self.guicmd_assert_response(
+            GuiCommand.SWITCH_TO_ACTION, 1, [RobotSpeech.SWITCH_SKILL])
         self.gui_command_pub.publish(
             GuiCommand(GuiCommand.SELECT_ACTION_STEP, 2))
-        self.gui_command_pub.publish(
-            GuiCommand(GuiCommand.SWITCH_TO_ACTION, 1))
+        self.guicmd_assert_response(
+            GuiCommand.SWITCH_TO_ACTION, 2, [RobotSpeech.SWITCH_SKILL])
+
+        # TODO(mbforbes): Current spot. This test passes but exceptions
+        # are thrown in ProgrammedAction::marker_click_cb(...) for what
+        # appears to be a race condition. Markers that are out of array
+        # range are being operated on.
 
         # Make sure nothing's crashed.
         self.check_alive()
 
+    @unittest.skip("tmp")
     def test_simple_execution(self):
         '''Extremely simple execution test: just save poses in place and
         execute. Merely testing lack of system crash.'''
@@ -694,7 +770,6 @@ class TestEndToEnd(unittest.TestCase):
         # Assert a responses is heard within the timeout.
         self.assert_response(prev_resp_map, timeout)
 
-
     def cmd_assert_response(
             self, command, responses, timeout=DEFAULT_CMD_RESP_TIMEOUT):
         '''Issues a command and asserts that one of the valid responses
@@ -713,7 +788,6 @@ class TestEndToEnd(unittest.TestCase):
 
         # Assert a responses is heard within the timeout.
         self.assert_response(prev_resp_map, timeout)
-
 
     def build_prev_resp_map(self, responses):
         '''Builds and returns a map of heard speech strings to the
@@ -734,7 +808,7 @@ class TestEndToEnd(unittest.TestCase):
         return prev_resp_map
 
     def assert_response(
-        self, prev_resp_map, timeout=DEFAULT_CMD_RESP_TIMEOUT):
+            self, prev_resp_map, timeout=DEFAULT_CMD_RESP_TIMEOUT):
         '''Asserts that at least one of any responses in keys of
         prev_resp_map is heard within timeout seconds by comparing to
         previous counts stored as values in prev_resp_map.
@@ -764,7 +838,8 @@ class TestEndToEnd(unittest.TestCase):
         # Not heard! Fail.
         self.assertFalse(
             True,
-            "Never heard any of expected responses: "  + str(responses)
+            "Never heard any of expected responses: " +
+            str(prev_resp_map.keys())
         )
 
     def any_resp_inc(self, prev_resp_map):
