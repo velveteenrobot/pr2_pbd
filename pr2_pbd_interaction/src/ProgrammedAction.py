@@ -15,7 +15,7 @@ import rosbag
 from pr2_pbd_interaction.msg import ArmState, ActionStepSequence
 from pr2_pbd_interaction.msg import ActionStep, ArmTarget
 from pr2_pbd_interaction.msg import GripperAction, ArmTrajectory
-from ActionStepMarker import ActionStepMarker
+from action_step_marker import ActionStepMarker
 from std_msgs.msg import Header, ColorRGBA
 
 
