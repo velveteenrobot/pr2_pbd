@@ -78,6 +78,8 @@ class World:
     '''Object recognition and localization related stuff'''
 
     tf_listener = None
+
+    # Type: [WorldObject]
     objects = []
 
     def __init__(self):
@@ -404,11 +406,13 @@ class World:
 
     @staticmethod
     def get_frame_list():
-        '''Function that returns the list of ref. frames'''
-        objects = []
-        for i in range(len(World.objects)):
-            objects.append(World.objects[i].object)
-        return objects
+        '''Function that returns the list of reference frames.
+
+        Returns:
+            [Object]: List of Object (as defined by Object.msg), the
+                current reference frames.
+        '''
+        return [w_obj.object for w_obj in World.objects]
 
     @staticmethod
     def has_objects():
@@ -425,7 +429,16 @@ class World:
 
     @staticmethod
     def get_ref_from_name(ref_name):
-        '''Ref. frame type from ref. frame name'''
+        '''Returns reference frame type from reference frame name
+        specified by ref_name.
+
+        Args:
+            ref_name (str): Name of a referene frame.
+
+        Returns:
+            int: One of ArmState.*, the number code of the reference
+                frame specified by ref_name.
+        '''
         if ref_name == 'base_link':
             return ArmState.ROBOT_BASE
         else:
