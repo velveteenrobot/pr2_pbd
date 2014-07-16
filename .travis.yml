@@ -73,4 +73,4 @@ script:
 # Linter: last resort to getting *something* useful to run on Travis :-)
 # NOTE(mbforbes): Add more files to this as they're completed.
     - roscd pr2_pbd_interaction
-    - pep8 src/interaction.py src/arm.py src/arms.py test/test_endtoend.py
+    - pep8 src/interaction.py src/arm.py src/arms.py src/action_step_marker.py test/test_endtoend.py
