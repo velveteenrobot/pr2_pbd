@@ -296,6 +296,10 @@ class ProgrammedAction:
     def select_step(self, step_id):
         ''' Makes the interactive marker for the indicated action
         step selected, by showing the 6D controls'''
+        n_steps = self.n_frames()
+        # TODO(mbforbes): Is this 0- or 1-based indexing? Or some
+        # calculated global ID? This should be made clear with variable
+        # names.
         self.marker_click_cb(step_id, True)
 
     def initialize_viz(self, object_list):

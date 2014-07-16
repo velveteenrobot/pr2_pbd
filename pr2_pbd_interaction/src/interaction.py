@@ -172,52 +172,52 @@ class Interaction:
         until ROS is shutdown. This pauses for 100ms at the end of every
         run before returning.
         '''
-        # Check whether shutdown.
-        if rospy.is_shutdown():
-            self.session.save_current_action()
-            rospy.loginfo("Interaction update thread exiting.")
-            return
+        # Loop while not shutdown.
+        while not rospy.is_shutdown():
+            # Update arms.
+            self.arms.update()
+            if self.arms.status != ExecutionStatus.NOT_EXECUTING:
+                if self.arms.status != ExecutionStatus.EXECUTING:
+                    self._end_execution()
 
-        # Update arms.
-        self.arms.update()
-        if self.arms.status != ExecutionStatus.NOT_EXECUTING:
-            if self.arms.status != ExecutionStatus.EXECUTING:
-                self._end_execution()
+            # Record trajectory step.
+            if self._is_recording_motion:
+                self._save_arm_to_trajectory()
 
-        # Record trajectory step.
-        if self._is_recording_motion:
-            self._save_arm_to_trajectory()
+            # Update the current action if there is one.
+            if self.session.n_actions() > 0:
+                action = self.session.get_current_action()
+                action.update_viz()
 
-        # Update the current action if there is one.
-        if self.session.n_actions() > 0:
-            action = self.session.get_current_action()
-            action.update_viz()
+                # TODO(mbforbes): Do we ever have r/l target(s)? When does
+                # this happen?
+                for side in [Side.RIGHT, Side.LEFT]:
+                    target = action.get_requested_targets(side)
+                    if target is not None:
+                        self.arms.start_move_to_pose(target, side)
+                        action.reset_targets(side)
 
-            # TODO(mbforbes): Do we ever have r/l target(s)? When does
-            # this happen?
-            for side in [Side.RIGHT, Side.LEFT]:
-                target = action.get_requested_targets(side)
-                if target is not None:
-                    self.arms.start_move_to_pose(target, side)
-                    action.reset_targets(side)
+                # Update any changes to steps that need to happen.
+                action.delete_requested_steps()
+                states = self._get_arm_states()
+                action.change_requested_steps(
+                    states[Side.RIGHT], states[Side.LEFT])
 
-            # Update any changes to steps that need to happen.
-            action.delete_requested_steps()
-            states = self._get_arm_states()
-            action.change_requested_steps(
-                states[Side.RIGHT], states[Side.LEFT])
+                # If the objects in the world have changed, update the
+                # action with them.
+                if self.world.update():
+                    rospy.loginfo('The world has changed.')
+                    self.session.get_current_action().update_objects(
+                        self.world.get_frame_list())
 
-            # If the objects in the world have changed, update the
-            # action with them.
-            if self.world.update():
-                rospy.loginfo('The world has changed.')
-                self.session.get_current_action().update_objects(
-                    self.world.get_frame_list())
+            # This is the pause between update runs. Note that this doesn't
+            # guarantee an update rate, only that there is this amount of
+            # pause between udpates.
+            rospy.sleep(UPDATE_WAIT_SECONDS)
 
-        # This is the pause between update runs. Note that this doesn't
-        # guarantee an update rate, only that there is this amount of
-        # pause between udpates.
-        rospy.sleep(UPDATE_WAIT_SECONDS)
+        # At this point, we have shut down.
+        self.session.save_current_action()
+        rospy.loginfo("Interaction update thread exiting.")
 
     # The following methods receive commands from speech / GUI and
     # process them. These are the multiplexers.
@@ -830,6 +830,7 @@ class Interaction:
     def _end_execution(self):
         '''Says a response and performs a gaze action for when an action
         execution ends.'''
+        rospy.loginfo("Execution ended. Status: " + str(self.arms.status))
         if self.arms.status == ExecutionStatus.SUCCEEDED:
             # Execution completed successfully.
             Response.say(RobotSpeech.EXECUTION_ENDED)

@@ -151,7 +151,7 @@ class Arms:
         # Ideally we need to find IK only if the frame is relative to an
         # object, but users can edit absolute poses in the GUI to make
         # them unreachable, so we try IK for absolute poses too.
-        if (arm_state.refFrame == ArmState.OBJECT):
+        if arm_state.refFrame == ArmState.OBJECT:
             # Arm is relative.
             solution = ArmState()
             target_pose = World.transform(
@@ -377,7 +377,7 @@ class Arms:
         # solving IK.
         for i in range(self.action.n_frames()):
             # See whether this step is an arm target step.
-            if (self.action.seq.seq[i].type == ActionStep.ARM_TARGET):
+            if self.action.seq.seq[i].type == ActionStep.ARM_TARGET:
                 # Solve IK for both arms.
                 r_arm, has_solution_r = Arms.solve_ik_for_arm(
                     Side.RIGHT,
@@ -573,7 +573,7 @@ class Arms:
         if moving_arm != self.attended_arm and not self.is_executing():
             if moving_arm == -1:
                 Response.perform_gaze_action(GazeGoal.LOOK_FORWARD)
-            elif (moving_arm == Side.RIGHT):
+            elif moving_arm == Side.RIGHT:
                 Response.perform_gaze_action(GazeGoal.FOLLOW_RIGHT_EE)
             else:
                 # moving_arm == Side.LEFT
@@ -593,7 +593,7 @@ class Arms:
             action_step = self.action.get_step(i)
 
             # Check that preconditions are met
-            if (not Arms.is_condition_met(action_step.preCond)):
+            if not Arms.is_condition_met(action_step.preCond):
                 rospy.logwarn(
                     '\tPreconditions of action step ' + str(i) + ' are not ' +
                     'satisfied. Aborting.')
@@ -616,7 +616,7 @@ class Arms:
 
             # Perhaps the execution was pre-empted by the user. Check
             # this before continuing onto the next step.
-            if (self.preempt):
+            if self.preempt:
                 rospy.logwarn('\tExecution preempted by user.')
                 self.status = ExecutionStatus.PREEMPTED
                 break
@@ -635,24 +635,35 @@ class Arms:
             bool: Whether the step was successfully executed.
         '''
         # For each step, check step type.
-        if (action_step.type == ActionStep.ARM_TARGET):
+        if action_step.type == ActionStep.ARM_TARGET:
             # Arm target.
             rospy.loginfo('\tWill perform arm target action step.')
             # Try moving to the joints.
             if not self.move_to_joints(
                     action_step.armTarget.rArm, action_step.armTarget.lArm):
-                self.status = ExecutionStatus.OBSTRUCTED
-                # Couldn't get to the joints; return false.
+                # We may have been pre-empted.
+                if self.preempt:
+                    self.status = ExecutionStatus.PREEMPTED
+                # Otherwise, we were obstructed.
+                else:
+                    self.status = ExecutionStatus.OBSTRUCTED
+                # Regardless, couldn't get to the joints; return False.
                 return False
-        elif (action_step.type == ActionStep.ARM_TRAJECTORY):
+        elif action_step.type == ActionStep.ARM_TRAJECTORY:
             # Arm trajectory.
             rospy.loginfo('\tWill perform arm trajectory action step.')
             # First move to the start frame.
             if not self.move_to_joints(
                     action_step.armTrajectory.r_arm[0],
                     action_step.armTrajectory.l_arm[0]):
-                self.status = ExecutionStatus.OBSTRUCTED
-                # Couldn't move to the start frame; return false.
+                # We may have been pre-empted.
+                if self.preempt:
+                    self.status = ExecutionStatus.PREEMPTED
+                # Otherwise, we were obstructed.
+                else:
+                    self.status = ExecutionStatus.OBSTRUCTED
+                # Regardless, couldn't move to the start frame; return
+                # False.
                 return False
 
             # Then execute the trajectory.
@@ -672,11 +683,18 @@ class Arms:
             rospy.lopginfo('\tTrajectory complete.')
 
             # Verify that both arms succeeded.
-            if ((not Arms.arms[Side.RIGHT].is_successful()) or
-                    (not Arms.arms[Side.LEFT].is_successful())):
+            if (not Arms.arms[Side.RIGHT].is_successful() or
+                    not Arms.arms[Side.LEFT].is_successful()):
                 rospy.logwarn(
                     '\tAborting execution; arms failed to follow trajectory.')
-                self.status = ExecutionStatus.OBSTRUCTED
+                # We may have been pre-empted.
+                if self.preempt:
+                    self.status = ExecutionStatus.PREEMPTED
+                # Otherwise, we were obstructed.
+                else:
+                    self.status = ExecutionStatus.OBSTRUCTED
+                # Regardless, couldn't complete trajectory; return
+                # False.
                 return False
 
         # If hand action, do it for both sides.
