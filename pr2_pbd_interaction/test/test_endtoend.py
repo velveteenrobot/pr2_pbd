@@ -57,7 +57,7 @@ PAUSE_STARTUP = 8.0
 PAUSE_SECONDS = 2.0
 
 # How long to allow for a command response to come in.
-DEFAULT_CMD_RESP_TIMEOUT = 2.0
+DEFAULT_CMD_RESP_TIMEOUT = 10.0  # TODO(mbforbes): Change back to 2.0.
 
 # How long to allow for a "record object pose" operation.
 RECORD_OBJECT_POSE_TIMEOUT = 20.0
