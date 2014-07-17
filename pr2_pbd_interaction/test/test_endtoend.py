@@ -954,7 +954,8 @@ class TestEndToEnd(unittest.TestCase):
             pan_el = [ARM_UP_POSITION * SIDE_MULS[side] * portion]
             lift_el = [ARM_UP_POSITION * -1.0 * portion]
             uproll_el = [ARM_UP_POSITION * SIDE_MULS[side] * portion]
-            elflex_el = [ARM_UP_POSITION]
+            # TODO(mbforbes): Refactor if this works. Was ARM_UP_...
+            elflex_el = [1.5 * portion]
             other_els = (
                 [ARM_UP_POSITION * SIDE_MULS[side] * portion] *
                 (len(joints) - 4))
