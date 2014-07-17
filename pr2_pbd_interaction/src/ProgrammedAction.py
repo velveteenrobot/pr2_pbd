@@ -279,6 +279,8 @@ class ProgrammedAction:
         '''Callback for when one of the markers is clicked.
         Goes over all markers and un-selects them'''
         for i in range(len(self.r_markers)):
+            rospy.loginfo("Looking for marker: " + str(i))
+            rospy.loginfo("...total markers: " + str(len(self.r_markers)))
             if (self.r_markers[i].get_uid() == uid):
                 self.r_markers[i].is_control_visible = is_selected
                 self.r_markers[i].update_viz()
