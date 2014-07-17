@@ -358,12 +358,12 @@ class Session:
             self._selected_step,
             self._get_gripper_states(Side.RIGHT),
             self._get_gripper_states(Side.LEFT),
-            self._get_ref_frames(Side.RIGHT),
-            self._get_ref_frames(Side.LEFT),
+            self._get_ref_frame_names(Side.RIGHT),
+            self._get_ref_frame_names(Side.LEFT),
             self._object_list
         )
 
-    def _get_ref_frames(self, arm_index):
+    def _get_ref_frame_names(self, arm_index):
         '''Returns a list of the names of the reference frames for the
         steps of the current action for arm_index.
 
@@ -373,11 +373,8 @@ class Session:
         Returns:
             [str]
         '''
-        ref_frame_names = []
-        for i in range(self.n_frames()):
-            action = self.actions[self.current_action_index]
-            ref_frame_names += [action.get_step_ref_frame(arm_index, i)]
-        return ref_frame_names
+        action = self.actions[self.current_action_index]
+        return action.get_ref_frame_names(arm_index)
 
     def _get_gripper_states(self, arm_index):
         '''Returns a list of the gripper states for the current action
@@ -390,11 +387,8 @@ class Session:
             [int]: Each item either GripperState.OPEN or
                 GripperState.CLOSED.
         '''
-        gripper_states = []
-        for i in range(self.n_frames()):
-            action = self.actions[self.current_action_index]
-            gripper_states += [action.get_step_gripper_state(arm_index, i)]
-        return gripper_states
+        action = self.actions[self.current_action_index]
+        return action.get_gripper_states(arm_index)
 
     def _get_participant_id(self):
         '''Gets the experiment number from the command line.'''
