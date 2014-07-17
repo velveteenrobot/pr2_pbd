@@ -681,8 +681,8 @@ class Arms:
             rospy.loginfo('\tWill perform arm trajectory action step.')
             # First move to the start frame.
             if not self.move_to_joints(
-                    action_step.armTrajectory.r_arm[0],
-                    action_step.armTrajectory.l_arm[0]):
+                    action_step.armTrajectory.rArm[0],
+                    action_step.armTrajectory.lArm[0]):
                 # We may have been pre-empted.
                 if self.preempt:
                     self.status = ExecutionStatus.PREEMPTED
@@ -695,11 +695,11 @@ class Arms:
 
             # Then execute the trajectory.
             Arms.arms[Side.RIGHT].execute_joint_traj(
-                action_step.armTrajectory.r_arm,
+                action_step.armTrajectory.rArm,
                 action_step.armTrajectory.timing
             )
             Arms.arms[Side.LEFT].execute_joint_traj(
-                action_step.armTrajectory.l_arm,
+                action_step.armTrajectory.lArm,
                 action_step.armTrajectory.timing
             )
 
