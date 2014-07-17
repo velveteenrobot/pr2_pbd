@@ -446,7 +446,13 @@ class World:
 
     @staticmethod
     def convert_ref_frame(arm_frame, ref_frame, ref_frame_obj=Object()):
-        '''Transforms an arm frame to a new ref. frame'''
+        '''Transforms an arm frame to a new ref. frame.
+
+        Args:
+            arm_frame (ArmState)
+            ref_frame (int): One of ArmState.*
+            ref_frame_obj (Object): As in Object.msg
+        '''
         # TODO(mbforbes): the third parameter, ref_frame_obj, is passed
         # as a string in Interaction._fix_trajectory_ref(...), but here
         # is named ref_frame_obj and the default is Object(). Something

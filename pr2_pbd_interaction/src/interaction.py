@@ -551,13 +551,13 @@ class Interaction:
             # Note that [:] is a shallow copy, copying references to
             # each element into a new list.
             traj_step.arm_trajectory = ArmTrajectory(
-                self._arm_trajectory.rArm[:],  # rArm (ArmState[])
-                self._arm_trajectory.lArm[:],  # lArm (ArmState[])
-                self._arm_trajectory.timing[:],  # timing (duration[])
-                self._arm_trajectory.r_ref,  # rRefFrame (uint8)
-                self._arm_trajectory.l_ref,  # lRefFrame (uint8)
-                self._arm_trajectory.r_ref_name,  # rRefFrameObject (Object)
-                self._arm_trajectory.l_ref_name  # lRefFrameObject (Object)
+                self._arm_trajectory.rArm[:],  # (ArmState[])
+                self._arm_trajectory.lArm[:],  # (ArmState[])
+                self._arm_trajectory.timing[:],  # (duration[])
+                self._arm_trajectory.rRefFrame,  # (uint8)
+                self._arm_trajectory.lRefFrame,  # (uint8)
+                self._arm_trajectory.rRefFrameObject,  # (Object)
+                self._arm_trajectory.lRefFrameObject  # (Object)
             )
             traj_step.gripperAction = GripperAction(
                 GripperState(self.arms.get_gripper_state(Side.RIGHT)),
@@ -719,60 +719,74 @@ class Interaction:
         altering all steps in the trajctory to be relative to the same
         reference frame (again, separate for right and left arms).
         '''
-        # First, find the dominant reference frame (e.g. robot base,
+        # First, get objects from the world.
+        frame_list = self.world.get_frame_list()
+
+        # Next, find the dominant reference frame (e.g. robot base,
         # an object).
-        r_ref, r_ref_name = self._find_dominant_ref(self._arm_trajectory.rArm)
-        l_ref, l_ref_name = self._find_dominant_ref(self._arm_trajectory.lArm)
+        t = self._arm_trajectory
+        r_ref_n, r_ref_obj = self._find_dominant_ref(t.rArm, frame_list)
+        l_ref_n, l_ref_obj = self._find_dominant_ref(t.lArm, frame_list)
 
         # Next, alter all trajectory steps (ArmState's) so that they use
         # the dominant reference frame as their reference frame.
         for i in range(len(self._arm_trajectory.timing)):
-            self._arm_trajectory.rArm[i] = World.convert_ref_frame(
+            t.rArm[i] = World.convert_ref_frame(
                 self._arm_trajectory.rArm[i],  # arm_frame (ArmState)
-                r_ref,  # ref_frame (int)
-                r_ref_name  # ref_frame_obj (str)
+                r_ref_n,  # ref_frame (int)
+                r_ref_obj  # ref_frame_obj (Objet)
             )
-            self._arm_trajectory.lArm[i] = World.convert_ref_frame(
+            t.lArm[i] = World.convert_ref_frame(
                 self._arm_trajectory.lArm[i],  # arm_frame (ArmState)
-                l_ref,  # ref_frame (int)
-                l_ref_name  # ref_frame_obj (str)
+                l_ref_n,  # ref_frame (int)
+                l_ref_obj  # ref_frame_obj (Objet)
             )
 
         # Save the dominant ref. frame no./name in the trajectory for
         # reference.
-        self._arm_trajectory.r_ref = r_ref
-        self._arm_trajectory.l_ref = l_ref
-        self._arm_trajectory.r_ref_name = r_ref_name
-        self._arm_trajectory.l_ref_name = l_ref_name
+        t.rRefFrame = r_ref_n
+        t.lRefFrame = l_ref_n
+        t.rRefFrameObject = r_ref_obj
+        t.lRefFrameObject = l_ref_obj
 
-    def _find_dominant_ref(self, arm_traj):
+    def _find_dominant_ref(self, arm_traj, frame_list):
         '''Finds the most dominant reference frame in a continuous
         trajectory.
 
         Args:
             arm_traj (ArmState[]): List of arm states that form the arm
                 trajectory.
+            frame_list ([Object]): List of Object (as defined by
+                Object.msg), the current reference frames.
 
         Returns:
-            (int, str): Tuple of the dominant reference frame's number
-                (as one of the constants available in ArmState to be set
-                as ArmState.refFrame) and name.
+            (int, Object): Tuple of the dominant reference frame's
+                number (as one of the constants available in ArmState to
+                be set as ArmState.refFrame) and Object (as in
+                Object.msg).
         '''
-        ref_names = self.world.get_frame_list()
-        ref_counts = Counter()
-
         # Cycle through all arm states and check their reference frames.
         # Whichever one is most frequent becomes the dominant one.
+        ref_counts = Counter()
         for arm_state in arm_traj:
-            if arm_state.refFrameName in ref_names:
+            if arm_state.refFrameName in frame_list:
                 ref_counts[arm_state.refFrameName] += 1
             else:
                 rospy.logwarn(
                     'Ignoring object with reference frame name '
                     + arm_state.refFrameName
                     + ' because the world does not have this object.')
+
+        # Get top name and obj.
         dominant_ref_name = ref_counts.most_common(1)[0][0]
-        return World.get_ref_from_name(dominant_ref_name), dominant_ref_name
+        dominant_ref_obj = Object()
+        for frame in fame_list:
+            if frame.name == dominant_ref_name:
+                dominant_ref_obj = frame
+                break
+
+        # Find the frame number (int) and return with the object.
+        return World.get_ref_from_name(dominant_ref_name), dominant_ref_obj
 
     def _save_arm_to_trajectory(self):
         '''Saves current arm state into continuous trajectory.'''
