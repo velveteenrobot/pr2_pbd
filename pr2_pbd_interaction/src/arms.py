@@ -570,8 +570,13 @@ class Arms:
                 (not suc[Side.LEFT] and is_l_moving)):
             # DEBUG: remove
             rospy.logwarn('\t[DEBUG] R arm success: ' + str(suc[Side.RIGHT]))
+            rstatus = Arms.arms[Side.RIGHT].traj_action_client.get_state()
+            rospy.logwarn('\t[DEBUG] R arm status: ' + str(rstatus))
             rospy.logwarn('\t[DEBUG] R arm moving: ' + str(is_r_moving))
+
             rospy.logwarn('\t[DEBUG] L arm success: ' + str(suc[Side.LEFT]))
+            lstatus = Arms.arms[Side.LEFT].traj_action_client.get_state()
+            rospy.logwarn('\t[DEBUG] L arm status: ' + str(lstatus))
             rospy.logwarn('\t[DEBUG] L arm moving: ' + str(is_l_moving))
             rospy.logwarn('\tAborting because arms failed to move to joints.')
             return False
