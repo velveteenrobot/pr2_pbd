@@ -459,7 +459,7 @@ class World:
         # smells wrong.
         if ref_frame == ArmState.ROBOT_BASE:
             if (arm_frame.refFrame == ArmState.ROBOT_BASE):
-                rospy.logwarn('No reference frame transformations ' +
+                rospy.logdebug('No reference frame transformations ' +
                               'needed (both absolute).')
             elif (arm_frame.refFrame == ArmState.OBJECT):
                 abs_ee_pose = World.transform(arm_frame.ee_pose,
@@ -479,7 +479,7 @@ class World:
                 arm_frame.refFrameObject = ref_frame_obj
             elif (arm_frame.refFrame == ArmState.OBJECT):
                 if (arm_frame.refFrameObject.name == ref_frame_obj.name):
-                    rospy.logwarn('No reference frame transformations ' +
+                    rospy.logdebug('No reference frame transformations ' +
                                   'needed (same object).')
                 else:
                     rel_ee_pose = World.transform(arm_frame.ee_pose,

@@ -634,7 +634,7 @@ class TestEndToEnd(unittest.TestCase):
         joint_name = self.arm_control_joints[side][0]
         # We expect to get to the final postion for that side.
         expected_position = (
-            SIDE_MULS[side] * ARM_UP_POSITION * SIMPLE_EXECUTION_PORTIONS[-1])
+            SIDE_MULS[side] * ARM_OUT_PAN * SIMPLE_EXECUTION_PORTIONS[-1])
         # ... and we're willing to wait for all steps.
         wait_time = EXECUTION_STEP_TIME * len(SIMPLE_EXECUTION_PORTIONS)
         self.assertJointCloseWithinTimeout(
@@ -721,7 +721,7 @@ class TestEndToEnd(unittest.TestCase):
         side = SIDES[0]
         joint_name = self.arm_control_joints[side][0]
         expected_position = (
-            SIDE_MULS[side] * ARM_UP_POSITION * SIMPLE_EXECUTION_PORTIONS[-1])
+            SIDE_MULS[side] * ARM_OUT_PAN * SIMPLE_EXECUTION_PORTIONS[-1])
         # Multiply by two as we saved two poses per each move
         wait_time = EXECUTION_STEP_TIME * len(SIMPLE_EXECUTION_PORTIONS) * 2
         self.assertJointCloseWithinTimeout(
@@ -803,7 +803,7 @@ class TestEndToEnd(unittest.TestCase):
         joint_name = self.arm_control_joints[side][0]
         # We expect to get to the final postion for that side.
         expected_position = (
-            SIDE_MULS[side] * ARM_UP_POSITION * SIMPLE_EXECUTION_PORTIONS[-1])
+            SIDE_MULS[side] * ARM_OUT_PAN * SIMPLE_EXECUTION_PORTIONS[-1])
         # ... and we're willing to wait for all steps. This is a
         # traejctory, so it takes more time per "step."
         wait_time = EXECUTION_STEP_TIME * len(SIMPLE_EXECUTION_PORTIONS)
