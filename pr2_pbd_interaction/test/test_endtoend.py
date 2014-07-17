@@ -63,7 +63,7 @@ DEFAULT_CMD_RESP_TIMEOUT = 1.0
 RECORD_OBJECT_POSE_TIMEOUT = 20.0
 
 # How long to allow for the "end of execution" reporting robot speech.
-EXECUTION_END_RESPONSE_TIMEOUT = 5.0
+EXECUTION_END_RESPONSE_TIMEOUT = 10.0
 
 # How long to wait in-between querying the recorded joint states for its
 # value. Note that the joints themselves publish updates at ~90Hz.
@@ -814,7 +814,7 @@ class TestEndToEnd(unittest.TestCase):
         expected_position = (
             SIDE_MULS[side] * ARM_UP_POSITION * SIMPLE_EXECUTION_PORTIONS[-1])
         # ... and we're willing to wait for all steps. This is a
-        # traejctory but is generous.
+        # traejctory, so it takes more time per "step."
         wait_time = EXECUTION_STEP_TIME * len(SIMPLE_EXECUTION_PORTIONS)
         self.assertJointCloseWithinTimeout(
             joint_name, expected_position, ARM_EPSILON_POSITION, wait_time)
