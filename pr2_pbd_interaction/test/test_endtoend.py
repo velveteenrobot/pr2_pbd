@@ -124,7 +124,7 @@ RELEVANT_JOINTS = [
 GRIPPER_OPEN_POSITION = 0.08
 GRIPPER_CLOSE_POSITION = 0.00
 GRIPPER_EPSILON_POSITION = 0.01
-GRIPPER_TOGGLE_TIME_SECONDS = 14.0
+GRIPPER_TOGGLE_TIME_SECONDS = 10.0
 
 # Most arm joints are set to this position (or its negative) when moving
 # the arms around.
@@ -683,16 +683,30 @@ class TestEndToEnd(unittest.TestCase):
                 (Command.CLOSE_LEFT_HAND, [RobotSpeech.LEFT_HAND_CLOSING])
             ]
         }
+        gripper_positions = {
+            'open': GRIPPER_OPEN_POSITION,
+            'close': GRIPPER_CLOSE_POSITION
+        }
 
         for portion in SIMPLE_EXECUTION_PORTIONS:
-            # Move the arms
+            # First move the arms.
             self.move_arms_up(portion)
 
-            # Save two poses by opening/closing each hand
+            # Save two poses by opening/closing each hand.
             last_toggle = 'close' if last_toggle == 'open' else 'open'
             cmd_pairs = gripper_cmds[last_toggle]
             for cmd, resp_arr in cmd_pairs:
                 self.cmd_assert_response(cmd, resp_arr)
+
+            # We wait for each to finish (otherwise we start moving
+            # before they're fully open/closed).
+            for joint in [side + GRIPPER_JOINT_POSTFIX for side in SIDES]:
+                self.assertJointCloseWithinTimeout(
+                    joint,
+                    gripper_positions[last_toggle],
+                    GRIPPER_EPSILON_POSITION,
+                    GRIPPER_TOGGLE_TIME_SECONDS
+                )
 
         # Move arms to bottom position.
         self.move_arms_up(0.0)
