@@ -128,7 +128,7 @@ GRIPPER_TOGGLE_TIME_SECONDS = 10.0
 
 # Most arm joints are set to this position (or its negative) when moving
 # the arms around.
-ARM_OUT_PAN = 1.0
+ARM_OUT_PAN = 1.2
 ARM_UP_FLEX = -1.0
 ARM_UP_POSITION = 0.5
 
@@ -651,6 +651,7 @@ class TestEndToEnd(unittest.TestCase):
         # Make sure nothing's crashed.
         self.check_alive()
 
+    @unittest.skip("tmp")
     def test_open_close_execution(self):
         '''Test moving the arms a few times and saving poses with open/close
         hand, then executing.'''
@@ -749,6 +750,60 @@ class TestEndToEnd(unittest.TestCase):
 
         # Make sure we hear "execution ended".
         self.assert_response(prev_finished)
+
+        # Make sure nothing's crashed.
+        self.check_alive()
+
+    def test_trajectory(self):
+        '''Test moving the arms a few times and executing.'''
+        # Ensure things are ready to go.
+        self.check_alive()
+
+        # Create action, move arms to bottom position.
+        self.cmd_assert_response(
+            Command.CREATE_NEW_ACTION, [RobotSpeech.SKILL_CREATED])
+        self.move_arms_up(0.0)
+
+        # Start recording motion
+        self.cmd_assert_response(
+            Command.START_RECORDING_MOTION,
+            [RobotSpeech.STARTED_RECORDING_MOTION])
+
+        # Move arms to several different increments.
+        for portion in SIMPLE_EXECUTION_PORTIONS:
+            self.move_arms_up(portion)
+
+        # Stop recording motion.
+        self.cmd_assert_response(
+            Command.STOP_RECORDING_MOTION,
+            [RobotSpeech.STOPPED_RECORDING_MOTION])
+
+        # Move arms to bottom position.
+        self.move_arms_up(0.0)
+
+        # We'll track the execution ended response, but we get the
+        # pre-count here to avoid a race condition.
+        prev_stopped = self.build_prev_resp_map(
+            [RobotSpeech.EXECUTION_ENDED])
+
+        # Execute!
+        self.cmd_assert_response(
+            Command.EXECUTE_ACTION, [RobotSpeech.START_EXECUTION])
+
+        # Make sure the arms get there by checking one of the joints.
+        side = SIDES[0]
+        joint_name = self.arm_control_joints[side][0]
+        # We expect to get to the final postion for that side.
+        expected_position = (
+            SIDE_MULS[side] * ARM_UP_POSITION * SIMPLE_EXECUTION_PORTIONS[-1])
+        # ... and we're willing to wait for all steps. This is a
+        # traejctory but is generous.
+        wait_time = EXECUTION_STEP_TIME * len(SIMPLE_EXECUTION_PORTIONS)
+        self.assertJointCloseWithinTimeout(
+            joint_name, expected_position, ARM_EPSILON_POSITION, wait_time)
+
+        # Make sure it says that it's finished successfully.
+        self.assert_response(prev_stopped, EXECUTION_END_RESPONSE_TIMEOUT)
 
         # Make sure nothing's crashed.
         self.check_alive()
