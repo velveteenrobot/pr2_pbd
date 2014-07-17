@@ -288,7 +288,13 @@ class ProgrammedAction:
         # We prevent this by doing a 'for a in b' loop rather than a
         # 'for i in range(len(b))' loop, as the latter is insensitive to
         # list length changes.
-        for marker in self.r_markers + self.l_markers:
+
+        # DEBUG(mbforbes): Trying locking.
+        rospy.loginfo("[DEBUG]: marker_click_cb trying to get lock")
+        self.lock.acquire()
+
+        for idx, marker in enumerate(self.r_markers + self.l_markers):
+            rospy.loginfo("[DEBUG]: trying marker " + idx)
             # If we match the one we've clicked on, select it.
             if marker.get_uid() == uid:
                 marker.is_control_visible = is_selected
@@ -300,7 +306,12 @@ class ProgrammedAction:
                     marker.update_viz()
 
         if is_selected:
+            rospy.loginfo("[DEBUG]: doing marker click CB ")
             self.step_click_cb(uid)
+
+        # DEBUG(mbforbes): Trying locking.
+        self.lock.release()
+        rospy.loginfo("[DEBUG]: marker_click_cb released lock")
 
     def select_step(self, step_id):
         ''' Makes the interactive marker for the indicated action
