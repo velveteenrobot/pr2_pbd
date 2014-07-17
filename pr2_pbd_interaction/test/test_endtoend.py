@@ -522,14 +522,9 @@ class TestEndToEnd(unittest.TestCase):
 
         # Switch between the steps. We don't track responses for these
         # because there's no speech response, only a GUI change.
-        self.gui_command_pub.publish(
-            GuiCommand(GuiCommand.SELECT_ACTION_STEP, 3))
-        self.gui_command_pub.publish(
-            GuiCommand(GuiCommand.SELECT_ACTION_STEP, 2))
-        self.gui_command_pub.publish(
-            GuiCommand(GuiCommand.SELECT_ACTION_STEP, 4))
-        self.gui_command_pub.publish(
-            GuiCommand(GuiCommand.SELECT_ACTION_STEP, 1))
+        for step_no in [10, 9, 4, 1]:
+            self.gui_command_pub.publish(
+                GuiCommand(GuiCommand.SELECT_ACTION_STEP, step_no))
 
         # Navigate away/to the action, switch to a step
         self.cmd_assert_response(
@@ -562,11 +557,6 @@ class TestEndToEnd(unittest.TestCase):
             GuiCommand(GuiCommand.SELECT_ACTION_STEP, 2))
         self.guicmd_assert_response(
             GuiCommand.SWITCH_TO_ACTION, 2, [RobotSpeech.SWITCH_SKILL])
-
-        # TODO(mbforbes): Current spot. This test passes but exceptions
-        # are thrown in ProgrammedAction::marker_click_cb(...) for what
-        # appears to be a race condition. Markers that are out of array
-        # range are being operated on.
 
         # Make sure nothing's crashed.
         self.check_alive()
