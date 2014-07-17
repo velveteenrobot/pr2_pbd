@@ -394,7 +394,7 @@ class ProgrammedAction:
         step = self.get_step(index)
         if step is None:
             rospy.logerr(
-                "Step " + index + " doesn't exit. Can't get gripper state.")
+                "Step " + str(index) + " doesn't exit. Can't get gripper state.")
             return DEFAULT_GRIPPER_STATE
         ga = step.gripperAction
         return ga.rGripper if arm_index == Side.RIGHT else ga.lGripper
