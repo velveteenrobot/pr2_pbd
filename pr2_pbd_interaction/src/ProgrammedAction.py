@@ -414,7 +414,8 @@ class ProgrammedAction:
         step = self.get_step(index)
         if step is None:
             rospy.logerr(
-                "Step " + index + " doesn't exit. Can't get ref frame name.")
+                "Step " + str(index) + " doesn't exit. Can't get ref frame " +
+                "name.")
             return DEFAULT_REF_FRAME_NAME
         target = step.armTarget
         arm = target.rArm if arm_index == Side.RIGHT else target.lArm
@@ -432,7 +433,7 @@ class ProgrammedAction:
         n_steps = len(self.seq.seq)
         if index < 0 or index >= n_steps:
             rospy.logerr(
-                "Requested step index " + index + ", but only have " +
+                "Requested step index " + str(index) + ", but only have " +
                 str(n_steps) + " steps.")
             requested_step = None
         else:
