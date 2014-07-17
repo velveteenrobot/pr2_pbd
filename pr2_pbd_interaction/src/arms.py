@@ -566,8 +566,8 @@ class Arms:
         suc = {}
         for side in SIDES:
             suc[side] = Arms.arms[side].is_successful()
-        if ((not suc[Side.RIGHT] and is_r_moving) or
-                (not suc[Side.LEFT] and is_l_moving)):
+        if ((is_r_moving and not suc[Side.RIGHT]) or
+                (is_l_moving and not suc[Side.LEFT])):
             # DEBUG: remove
             rospy.logwarn('\t[DEBUG] R arm success: ' + str(suc[Side.RIGHT]))
             rstatus = Arms.arms[Side.RIGHT].traj_action_client.get_state()

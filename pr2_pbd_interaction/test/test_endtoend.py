@@ -953,7 +953,7 @@ class TestEndToEnd(unittest.TestCase):
             # - The remaining joints are mirrored, as normal
             pan_el = [ARM_UP_POSITION * SIDE_MULS[side] * portion]
             lift_el = [ARM_UP_POSITION * -1.0 * portion]
-            uproll_el = [ARM_UP_POSITION * portion]
+            uproll_el = [ARM_UP_POSITION * SIDE_MULS[side] * portion]
             elflex_el = [ARM_UP_POSITION]
             other_els = (
                 [ARM_UP_POSITION * SIDE_MULS[side] * portion] *
