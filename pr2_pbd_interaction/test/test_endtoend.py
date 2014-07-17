@@ -129,7 +129,7 @@ GRIPPER_TOGGLE_TIME_SECONDS = 10.0
 # Most arm joints are set to this position (or its negative) when moving
 # the arms around.
 ARM_OUT_PAN = 1.0
-ARM_UP_FLEX = -1.2
+ARM_UP_FLEX = -1.0
 ARM_UP_POSITION = 0.5
 
 # No idea what is reasonable here; PbD seems to use 0.
@@ -949,13 +949,12 @@ class TestEndToEnd(unittest.TestCase):
             # - The upper arm roll joint (third) should be mirrored, as
             #       normal.
             # - The elbow flex joint should be unmirrored and set to
-            #       raise up.
+            #       raise up, always going a little below 0.0.
             # - The remaining joints are mirrored, as normal
             pan_el = [ARM_OUT_PAN * SIDE_MULS[side] * portion]
             lift_el = [ARM_UP_POSITION * -1.0 * portion]
             uproll_el = [ARM_UP_POSITION * SIDE_MULS[side] * portion]
-            # TODO(mbforbes): Refactor if this works. Was ARM_UP_...
-            elflex_el = [ARM_UP_FLEX * portion]
+            elflex_el = [ARM_UP_FLEX * (portion + 0.2)]
             other_els = (
                 [ARM_UP_POSITION * SIDE_MULS[side] * portion] *
                 (len(joints) - 4))
