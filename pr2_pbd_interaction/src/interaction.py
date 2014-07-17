@@ -38,6 +38,7 @@ from World import World
 
 EXECUTION_Z_OFFSET = -0.00
 UPDATE_WAIT_SECONDS = 0.1
+BASE_LINK = 'base_link'
 
 
 # ######################################################################
@@ -767,26 +768,25 @@ class Interaction:
         '''
         # Cycle through all arm states and check their reference frames.
         # Whichever one is most frequent becomes the dominant one.
+        robot_base = Object(name=BASE_LINK)
         ref_counts = Counter()
         for arm_state in arm_traj:
-            if arm_state.refFrameName in frame_list:
-                ref_counts[arm_state.refFrameName] += 1
+            # We only track objects that
+            if arm_state.refFrame == ArmState.ROBOT_BASE:
+                ref_counts[robot_base] += 1
+            elif arm_state.refFrameObject in frame_list:
+                ref_counts[arm_state.refFrameObject] += 1
             else:
                 rospy.logwarn(
                     'Ignoring object with reference frame name '
-                    + arm_state.refFrameName
+                    + arm_state.refFrameObject.name
                     + ' because the world does not have this object.')
 
-        # Get top name and obj.
-        dominant_ref_name = ref_counts.most_common(1)[0][0]
-        dominant_ref_obj = Object()
-        for frame in fame_list:
-            if frame.name == dominant_ref_name:
-                dominant_ref_obj = frame
-                break
+        # Get most common obj.
+        dominant_ref_obj = ref_counts.most_common(1)[0][0]
 
         # Find the frame number (int) and return with the object.
-        return World.get_ref_from_name(dominant_ref_name), dominant_ref_obj
+        return World.get_ref_from_name(dominant_ref_obj.name), dominant_ref_obj
 
     def _save_arm_to_trajectory(self):
         '''Saves current arm state into continuous trajectory.'''
