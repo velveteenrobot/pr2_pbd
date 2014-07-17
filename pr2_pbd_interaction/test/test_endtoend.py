@@ -522,7 +522,9 @@ class TestEndToEnd(unittest.TestCase):
 
         # Switch between the steps. We don't track responses for these
         # because there's no speech response, only a GUI change.
-        for step_no in [10, 9, 4, 1]:
+        # NOTE(mbforbes): Step arguments are weird. It is the 1-based
+        # indexed step, times 2, plus either 0 or 1 for right/left arm.
+        for step_no in [9, 6, 3, 8]:
             self.gui_command_pub.publish(
                 GuiCommand(GuiCommand.SELECT_ACTION_STEP, step_no))
 
@@ -532,13 +534,13 @@ class TestEndToEnd(unittest.TestCase):
         self.cmd_assert_response(
             Command.NEXT_ACTION, [RobotSpeech.SWITCH_SKILL])
         self.gui_command_pub.publish(
-            GuiCommand(GuiCommand.SELECT_ACTION_STEP, 2))
+            GuiCommand(GuiCommand.SELECT_ACTION_STEP, 3))
 
         # Delete a step and try to switch to it
         self.cmd_assert_response(
             Command.DELETE_LAST_STEP, [RobotSpeech.LAST_POSE_DELETED])
         self.gui_command_pub.publish(
-            GuiCommand(GuiCommand.SELECT_ACTION_STEP, 4))
+            GuiCommand(GuiCommand.SELECT_ACTION_STEP, 8))
 
         # Delete all steps and try to switch to one
         self.cmd_assert_response(
