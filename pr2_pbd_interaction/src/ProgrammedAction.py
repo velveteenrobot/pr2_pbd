@@ -278,25 +278,25 @@ class ProgrammedAction:
     def marker_click_cb(self, uid, is_selected):
         '''Callback for when one of the markers is clicked.
         Goes over all markers and un-selects them'''
-        for i in range(len(self.r_markers)):
-            rospy.loginfo("Looking for marker: " + str(i))
-            rospy.loginfo("...total markers: " + str(len(self.r_markers)))
-            if (self.r_markers[i].get_uid() == uid):
-                self.r_markers[i].is_control_visible = is_selected
-                self.r_markers[i].update_viz()
+        # NOTE(mbforbes): Bad things are happening here, where the
+        # marker array is getting updated WHILE it's being accessed.
+        # This is either because of:
+        # - a race condition due to the update loop
+        # - a race condition because of callbacks (ROS events)
+        # - execution flows that cause this to happen
+        # We prevent this by doing a 'for a in b' loop rather than a
+        # 'for i in range(len(b))' loop, as the latter is insensitive to
+        # list length changes.
+        for marker in self.r_markers + self.l_markers:
+            # If we match the one we've clicked on, select it.
+            if marker.get_uid() == uid:
+                marker.is_control_visible = is_selected
+                marker.update_viz()
             else:
-                if (self.r_markers[i].is_control_visible):
-                    self.r_markers[i].is_control_visible = False
-                    self.r_markers[i].update_viz()
-
-        for i in range(len(self.l_markers)):
-            if (self.l_markers[i].get_uid() == uid):
-                self.l_markers[i].is_control_visible = is_selected
-                self.l_markers[i].update_viz()
-            else:
-                if (self.l_markers[i].is_control_visible):
-                    self.l_markers[i].is_control_visible = False
-                    self.l_markers[i].update_viz()
+                # Otherwise, deselect it.
+                if marker.is_control_visible:
+                    marker.is_control_visible = False
+                    marker.update_viz()
 
         if is_selected:
             self.step_click_cb(uid)
