@@ -29,6 +29,9 @@ from World import World
 # Module level constants
 # ######################################################################
 
+# Robot currently has two arms.
+SIDES = [Side.RIGHT, Side.LEFT]
+
 # The minimum arm movement that 'counts' as moved.
 # TODO(mbforbes): This is duplicated in arm.py. Use theirs.
 ARM_MOVEMENT_THRESHOLD = 0.02
@@ -59,7 +62,7 @@ class Arms:
 
     def __init__(self):
         # Create two arms; initialize their individual state.
-        for side in [Side.RIGHT, Side.LEFT]:
+        for side in SIDES:
             arm = Arm(side)
             Arms.arms[side] = arm
             arm.set_mode(ArmMode.HOLD)
@@ -268,6 +271,7 @@ class Arms:
             int: Side.RIGHT or Side.LEFT, the most moving arm, or -1 if
                 neither arm has sufficiently moved.
         '''
+        # TODO(mbforbes): Refactor with SIDES.
         if (Arms.arms[Side.RIGHT].get_movement() < ARM_MOVEMENT_THRESHOLD and
                 Arms.arms[Side.LEFT].get_movement() < ARM_MOVEMENT_THRESHOLD):
             return -1
@@ -558,8 +562,17 @@ class Arms:
         rospy.loginfo('\tArms reached target.')
 
         # Verify that both arms succeeded
-        if ((not Arms.arms[Side.RIGHT].is_successful() and is_r_moving) or
-                (not Arms.arms[Side.LEFT].is_successful() and is_l_moving)):
+        # DEBUG: remove
+        suc = {}
+        for side in SIDES:
+            suc[side] = Arms.arms[side].is_successful()
+        if ((not suc[Side.RIGHT] and is_r_moving) or
+                (not suc[Side.LEFT] and is_l_moving)):
+            # DEBUG: remove
+            rospy.logwarn('\t[DEBUG] R arm success: ' + str(suc[Side.RIGHT]))
+            rospy.logwarn('\t[DEBUG] R arm moving: ' + str(is_r_moving))
+            rospy.logwarn('\t[DEBUG] L arm success: ' + str(suc[Side.LEFT]))
+            rospy.logwarn('\t[DEBUG] L arm moving: ' + str(is_l_moving))
             rospy.logwarn('\tAborting because arms failed to move to joints.')
             return False
         else:
