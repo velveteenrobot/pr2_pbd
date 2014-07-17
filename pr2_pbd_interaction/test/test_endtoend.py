@@ -57,7 +57,7 @@ PAUSE_STARTUP = 8.0
 PAUSE_SECONDS = 2.0
 
 # How long to allow for a command response to come in.
-DEFAULT_CMD_RESP_TIMEOUT = 1.0  # TODO(mbforbes): Change back to 2.0.
+DEFAULT_CMD_RESP_TIMEOUT = 1.0  # TODO(mbforbes): Originally 2.0.
 
 # How long to allow for a "record object pose" operation.
 RECORD_OBJECT_POSE_TIMEOUT = 20.0
@@ -488,6 +488,7 @@ class TestEndToEnd(unittest.TestCase):
         # Make sure nothing's crashed.
         self.check_alive()
 
+    @unittest.skip("tmp")
     def test_action_and_step_navigation(self):
         '''Tests creating / switching between actions, and creating /
         switching between steps.
@@ -642,7 +643,6 @@ class TestEndToEnd(unittest.TestCase):
         # Make sure nothing's crashed.
         self.check_alive()
 
-    @unittest.skip("haven't converted to response assertions yet")
     def test_open_close_execution(self):
         '''Test moving the arms a few times and saving poses with open/close
         hand, then executing.'''
@@ -650,37 +650,55 @@ class TestEndToEnd(unittest.TestCase):
         self.check_alive()
 
         # Make sure grippers are open, THEN create new action.
-        self.command_pub.publish(Command(Command.OPEN_RIGHT_HAND))
-        self.command_pub.publish(Command(Command.OPEN_LEFT_HAND))
-        self.command_pub.publish(Command(Command.CREATE_NEW_ACTION))
+        self.cmd_assert_response(
+            Command.OPEN_RIGHT_HAND, [
+                RobotSpeech.RIGHT_HAND_ALREADY_OPEN,
+                RobotSpeech.RIGHT_HAND_OPENING
+            ]
+        )
+        self.cmd_assert_response(
+            Command.OPEN_LEFT_HAND, [
+                RobotSpeech.LEFT_HAND_ALREADY_OPEN,
+                RobotSpeech.LEFT_HAND_OPENING
+            ]
+        )
+        self.cmd_assert_response(
+            Command.CREATE_NEW_ACTION, [RobotSpeech.SKILL_CREATED])
 
         # Move arms to several different increments, opening / closing
         # each time to save two poses.
         last_toggle = 'open'
         gripper_cmds = {
             'open': [
-                Command(Command.OPEN_RIGHT_HAND),
-                Command(Command.OPEN_LEFT_HAND)
+                (Command.OPEN_RIGHT_HAND, [RobotSpeech.RIGHT_HAND_OPENING]),
+                (Command.OPEN_LEFT_HAND, [RobotSpeech.LEFT_HAND_OPENING]),
             ], 'close': [
-                Command(Command.CLOSE_RIGHT_HAND),
-                Command(Command.CLOSE_LEFT_HAND)
+                (Command.CLOSE_RIGHT_HAND, [RobotSpeech.RIGHT_HAND_CLOSING]),
+                (Command.CLOSE_LEFT_HAND, [RobotSpeech.LEFT_HAND_CLOSING])
             ]
         }
+
         for portion in SIMPLE_EXECUTION_PORTIONS:
             # Move the arms
             self.move_arms_up(portion)
 
             # Save two poses by opening/closing each hand
             last_toggle = 'close' if last_toggle == 'open' else 'open'
-            cmds = gripper_cmds[last_toggle]
-            for cmd in cmds:
-                self.command_pub.publish(cmd)
+            cmd_pairs = gripper_cmds[last_toggle]
+            for cmd, resp_arr in cmd_pairs:
+                self.cmd_assert_response(cmd, resp_arr)
 
         # Move arms to bottom position.
         self.move_arms_up(0.0)
 
+        # We'll also want to make sure the action finishes. We create
+        # the previous count before executing so there's no race
+        # condition.
+        prev_finished = self.build_prev_resp_map([RobotSpeech.EXECUTION_ENDED])
+
         # Execute!
-        self.command_pub.publish(Command(Command.EXECUTE_ACTION))
+        self.cmd_assert_response(
+            Command.EXECUTE_ACTION, [RobotSpeech.START_EXECUTION])
 
         # Make sure the arms get there by checking one of the joints.
         side = SIDES[0]
@@ -706,6 +724,9 @@ class TestEndToEnd(unittest.TestCase):
                 GRIPPER_EPSILON_POSITION,
                 GRIPPER_TOGGLE_TIME_SECONDS
             )
+
+        # Make sure we hear "execution ended".
+        self.assert_response(prev_finished)
 
         # Make sure nothing's crashed.
         self.check_alive()

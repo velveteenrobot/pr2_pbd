@@ -278,23 +278,11 @@ class ProgrammedAction:
 
     def marker_click_cb(self, uid, is_selected):
         '''Callback for when one of the markers is clicked.
-        Goes over all markers and un-selects them'''
-        # NOTE(mbforbes): Bad things are happening here, where the
-        # marker array is getting updated WHILE it's being accessed.
-        # This is either because of:
-        # - a race condition due to the update loop
-        # - a race condition because of callbacks (ROS events)
-        # - execution flows that cause this to happen
-        # We prevent this by doing a 'for a in b' loop rather than a
-        # 'for i in range(len(b))' loop, as the latter is insensitive to
-        # list length changes.
 
-        # DEBUG(mbforbes): Trying locking.
-        rospy.loginfo("[DEBUG]: marker_click_cb trying to get lock")
+        Goes over all other markers and un-selects them.
+        '''
         self.lock.acquire()
-
         for idx, marker in enumerate(self.r_markers + self.l_markers):
-            rospy.loginfo("[DEBUG]: trying marker " + str(idx))
             # If we match the one we've clicked on, select it.
             if marker.get_uid() == uid:
                 marker.is_control_visible = is_selected
@@ -305,13 +293,10 @@ class ProgrammedAction:
                     marker.is_control_visible = False
                     marker.update_viz()
 
+        # If we selected it, really click on it.
         if is_selected:
-            rospy.loginfo("[DEBUG]: doing marker click CB ")
             self.step_click_cb(uid)
-
-        # DEBUG(mbforbes): Trying locking.
         self.lock.release()
-        rospy.loginfo("[DEBUG]: marker_click_cb released lock")
 
     def select_step(self, step_id):
         ''' Makes the interactive marker for the indicated action
