@@ -19,19 +19,18 @@ import threading
 from visualization_msgs.msg import MarkerArray
 
 # Local
-from World import World
-from RobotSpeech import RobotSpeech
-from Session import Session
-from Response import Response
-from arms import Arms
 from arm import ArmMode
+from arms import Arms
+from session import Session
 from pr2_pbd_interaction.msg import (
     ArmState, GripperState, ActionStep, ArmTarget, Object, GripperAction,
     ArmTrajectory, ExecutionStatus, GuiCommand, Side)
 from pr2_pbd_interaction.srv import Ping, PingResponse
 from pr2_pbd_speech_recognition.msg import Command
 from pr2_social_gaze.msg import GazeGoal
-
+from Response import Response
+from RobotSpeech import RobotSpeech
+from World import World
 
 # ######################################################################
 # Module level constants
