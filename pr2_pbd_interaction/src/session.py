@@ -373,6 +373,10 @@ class Session:
         Returns:
             [str]
         '''
+        # This can be called before anything's set up.
+        if self.n_actions() < 1:
+            return []
+        # Once we've got an action, we can query / return things.
         action = self.actions[self.current_action_index]
         return action.get_ref_frame_names(arm_index)
 
@@ -387,6 +391,10 @@ class Session:
             [int]: Each item either GripperState.OPEN or
                 GripperState.CLOSED.
         '''
+        # This can be called before anything's set up.
+        if self.n_actions() < 1:
+            return []
+        # Once we've got an action, we can query / return things.
         action = self.actions[self.current_action_index]
         return action.get_gripper_states(arm_index)
 
