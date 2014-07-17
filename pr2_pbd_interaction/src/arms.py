@@ -235,7 +235,7 @@ class Arms:
             arm_index (int): Side.RIGHT or Side.LEFT
 
         Returns:
-            int: GripperState.OPEN or GripperState.CLOSEd
+            int: GripperState.OPEN or GripperState.CLOSED
         '''
         return Arms.arms[arm_index].get_gripper_state()
 

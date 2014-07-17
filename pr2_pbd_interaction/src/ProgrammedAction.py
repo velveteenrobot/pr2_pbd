@@ -12,9 +12,9 @@ from visualization_msgs.msg import MarkerArray, Marker
 # ROS Libraries
 import rospy
 import rosbag
-from pr2_pbd_interaction.msg import ArmState, ActionStepSequence
-from pr2_pbd_interaction.msg import ActionStep, ArmTarget
-from pr2_pbd_interaction.msg import GripperAction, ArmTrajectory
+from pr2_pbd_interaction.msg import (
+    ArmState, ActionStepSequence, ActionStep, ArmTarget, Side,
+    GripperAction, ArmTrajectory)
 from action_step_marker import ActionStepMarker
 from std_msgs.msg import Header, ColorRGBA
 
@@ -43,7 +43,13 @@ class ProgrammedAction:
         return 'Action' + str(self.action_index)
 
     def add_action_step(self, step, object_list):
-        '''Function to add a new step to the action'''
+        '''Function to add a new step to the action.
+
+        Args:
+            step (ActionStep): The new step to add.
+            object_list ([Object]): List of Object (as defined by
+                Object.msg), the current reference frames.
+        '''
         self.lock.acquire()
         self.seq.seq.append(self._copy_action_step(step))
         if (step.type == ActionStep.ARM_TARGET
@@ -361,22 +367,33 @@ class ProgrammedAction:
         return is_required
 
     def get_step_gripper_state(self, arm_index, index):
-        ''' Returns the gripper state of indicated action step,
-        for the indicated side'''
-        action_step = self.get_step(index)
-        if arm_index == 0:
-            return action_step.gripperAction.rGripper
-        else:
-            return action_step.gripperAction.rGripper
+        '''Returns the gripper state of action step index for arm
+        arm_index.
+
+        Args:
+            arm_index (int): Side.RIGHT or Side.LEFT
+            index (int): The step to get a gripper state for.
+
+        Returns:
+            int: GripperSate.OPEN or GripperSate.CLOSED
+        '''
+        ga = self.get_step(index).gripperAction
+        return ga.rGripper if arm_index == Side.RIGHT else ga.lGripper
 
     def get_step_ref_frame(self, arm_index, index):
-        ''' Returns the gripper state of indicated action step,
-        for the indicated side'''
-        action_step = self.get_step(index)
-        if arm_index == 0:
-            return action_step.armTarget.rArm.refFrameObject.name
-        else:
-            return action_step.armTarget.lArm.refFrameObject.name
+        ''' Returns the name of the reference frame object for the
+        action step index on the arm_index side.
+
+        Args:
+            arm_index (int): Side.RIGHT or Side.LEFT
+            index (int): Which number step to use.
+
+        Returns:
+            str
+        '''
+        target = self.get_step(index).armTarget
+        arm = target.rArm if arm_index == Side.RIGHT else target.lArm
+        return arm.refFrameObject.name
 
     def get_step(self, index):
         '''Returns a step of the action'''
