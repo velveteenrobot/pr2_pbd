@@ -223,7 +223,6 @@ class TestEndToEnd(unittest.TestCase):
     # Tests
     # ##################################################################
 
-    @unittest.skip("tmp")
     def test_a_noaction_branches(self):
         '''This ideally exercises the "sorry, no action created yet"
         code that prevents requests from going through.
@@ -292,7 +291,6 @@ class TestEndToEnd(unittest.TestCase):
         # Make sure nothing's crashed.
         self.check_alive()
 
-    @unittest.skip("tmp")
     def test_stop_execution(self):
         '''Test name says it all. Extremely simple.'''
         # Ensure things are ready to go.
@@ -335,7 +333,6 @@ class TestEndToEnd(unittest.TestCase):
         # Make sure nothing's crashed.
         self.check_alive()
 
-    @unittest.skip("tmp")
     def test_freeze_relax_arm(self):
         '''Tests the freeze and relax arm functionality.'''
         # Ensure things are ready to go.
@@ -378,7 +375,6 @@ class TestEndToEnd(unittest.TestCase):
         # Make sure nothing's crashed.
         self.check_alive()
 
-    @unittest.skip("tmp")
     def test_gripper_open_close(self):
         '''Tests that issuing 'speech' commands to open and close the
         gripper puts them in the desired state.'''
@@ -423,7 +419,6 @@ class TestEndToEnd(unittest.TestCase):
         # Make sure nothing's crashed.
         self.check_alive()
 
-    @unittest.skip("tmp")
     def test_double_open_close(self):
         '''Tests that issuing a gripper open / close command twice
         doesn't break the robot and it stays in the desired state.
@@ -499,7 +494,6 @@ class TestEndToEnd(unittest.TestCase):
         # Make sure nothing's crashed.
         self.check_alive()
 
-    @unittest.skip("tmp")
     def test_action_and_step_navigation(self):
         '''Tests creating / switching between actions, and creating /
         switching between steps.
@@ -575,7 +569,6 @@ class TestEndToEnd(unittest.TestCase):
         # Make sure nothing's crashed.
         self.check_alive()
 
-    @unittest.skip("tmp")
     def test_simple_execution(self):
         '''Extremely simple execution test: just save poses in place and
         execute. Merely testing lack of system crash.'''
@@ -610,7 +603,6 @@ class TestEndToEnd(unittest.TestCase):
         # Make sure nothing's crashed.
         self.check_alive()
 
-    @unittest.skip("tmp")
     def test_moving_execution(self):
         '''Test moving the arms a few times and executing.'''
         # Ensure things are ready to go.
@@ -654,7 +646,6 @@ class TestEndToEnd(unittest.TestCase):
         # Make sure nothing's crashed.
         self.check_alive()
 
-    @unittest.skip("tmp")
     def test_open_close_execution(self):
         '''Test moving the arms a few times and saving poses with open/close
         hand, then executing.'''
