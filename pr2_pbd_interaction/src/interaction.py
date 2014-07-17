@@ -551,7 +551,7 @@ class Interaction:
             self._fix_trajectory_ref()
             # Note that [:] is a shallow copy, copying references to
             # each element into a new list.
-            traj_step.arm_trajectory = ArmTrajectory(
+            traj_step.armTrajectory = ArmTrajectory(
                 self._arm_trajectory.rArm[:],  # (ArmState[])
                 self._arm_trajectory.lArm[:],  # (ArmState[])
                 self._arm_trajectory.timing[:],  # (duration[])
