@@ -409,16 +409,16 @@ class Arms:
                     # Solve IK for both arms.
                     r_arm, has_solution_r = Arms.solve_ik_for_arm(
                         Side.RIGHT,
-                        self.action.seq.seq[i].armTrajectory.r_arm[j],
+                        self.action.seq.seq[i].armTrajectory.rArm[j],
                         self.z_offset
                     )
                     l_arm, has_solution_l = Arms.solve_ik_for_arm(
                         Side.LEFT,
-                        self.action.seq.seq[i].armTrajectory.l_arm[j],
+                        self.action.seq.seq[i].armTrajectory.lArm[j],
                         self.z_offset
                     )
-                    self.action.seq.seq[i].armTrajectory.r_arm[j] = r_arm
-                    self.action.seq.seq[i].armTrajectory.l_arm[j] = l_arm
+                    self.action.seq.seq[i].armTrajectory.rArm[j] = r_arm
+                    self.action.seq.seq[i].armTrajectory.lArm[j] = l_arm
 
                     # If either doesn't have a solution, we return
                     # false.
