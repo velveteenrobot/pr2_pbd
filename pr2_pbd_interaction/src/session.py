@@ -33,7 +33,7 @@ YAML_KEY_CURIDX = 'currentProgrammedActionIndex'
 # ROS params, topics, services, etc.
 PARAM_DATA_ROOT = '/pr2_pbd_interaction/dataRoot'
 PARAM_EXP_NO = '/pr2_pbd_interaction/experimentNumber'
-PARAM_IS_RELOAD = '/pr2_pbd_interaction/experimentNumber'
+PARAM_IS_RELOAD = '/pr2_pbd_interaction/isReload'
 PARAM_DATA_DIR = 'data_directory'
 TOPIC_EXP_STATE = 'experiment_state'
 SERVICE_GET_EXP_STATE = 'get_experiment_state'
@@ -82,7 +82,7 @@ class Session:
         self.current_action_index = 0
 
         # Reload the experiment state if specified.
-        if (self._is_reload):
+        if self._is_reload:
             self._load_session_state(object_list)
             rospy.loginfo("Session state loaded.")
 
