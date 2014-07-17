@@ -88,10 +88,10 @@ RESPONSE_TRIMS = [
     RobotSpeech.EXECUTION_ERROR_NOPOSES,
     # The following will have "Pose saved" sloppily appended to them
     # if an action has been created.
-    RIGHT_HAND_OPENING,
-    RIGHT_HAND_CLOSING,
-    LEFT_HAND_OPENING,
-    LEFT_HAND_CLOSING
+    RobotSpeech.RIGHT_HAND_OPENING,
+    RobotSpeech.RIGHT_HAND_CLOSING,
+    RobotSpeech.LEFT_HAND_OPENING,
+    RobotSpeech.LEFT_HAND_CLOSING
 ]
 
 # Sides (right and left)
