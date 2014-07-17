@@ -238,12 +238,9 @@ class ActionStepMarker:
             new_pose (Pose)
         '''
         if self.action_step.type == ActionStep.ARM_TARGET:
-            if self.arm_index == Side.RIGHT:
-                pose = ActionStepMarker._offset_pose(new_pose, -1)
-                self.action_step.armTarget.rArm.ee_pose = pose
-            else:
-                pose = ActionStepMarker._offset_pose(new_pose, -1)
-                self.action_step.armTarget.lArm.ee_pose = pose
+            t = self.action_step.armTarget
+            arm = t.rArm if self.arm_index == Side.RIGHT else t.lArm
+            arm.ee_pose = ActionStepMarker._offset_pose(new_pose, -1)
             self.update_viz()
         elif self.action_step.type == ActionStep.ARM_TRAJECTORY:
             rospy.logwarn(
@@ -274,24 +271,18 @@ class ActionStepMarker:
             Pose
         '''
         if self.action_step.type == ActionStep.ARM_TARGET:
-            if self.arm_index == Side.RIGHT:
-                arm_pose = self.action_step.armTarget.rArm
-            else:
-                arm_pose = self.action_step.armTarget.lArm
-
+            # "Normal" saved pose.
+            t = self.action_step.armTarget
+            arm_pose = t.rArm if self.arm_index == Side.RIGHT else t.lArm
         elif self.action_step.type == ActionStep.ARM_TRAJECTORY:
-            if self.arm_index == Side.LEFT:
-                if is_start:
-                    index = len(self.action_step.armTrajectory.rArm) - 1
-                    arm_pose = self.action_step.armTrajectory.rArm[index]
-                else:
-                    arm_pose = self.action_step.armTrajectory.rArm[0]
-            else:
-                if is_start:
-                    index = len(self.action_step.armTrajectory.lArm) - 1
-                    arm_pose = self.action_step.armTrajectory.lArm[index]
-                else:
-                    arm_pose = self.action_step.armTrajectory.lArm[0]
+            # Trajectory.
+            t = self.action_step.armTrajectory
+            arm = t.rArm if self.arm_index == Side.RIGHT else t.lArm
+            # TODO(mbforbes): Make sure this isn't a bug in the original
+            # implementation. Wouldn't is_start imply you want the first
+            # one?
+            index = len(arm) - 1 if is_start else 0
+            arm_pose = arm[index]
 
         # TODO(mbforbes): Figure out if there are cases that require
         # this, or remove.
@@ -319,10 +310,11 @@ class ActionStepMarker:
             target (ArmState): Replacement for this target.
         '''
         if self.action_step.type == ActionStep.ARM_TARGET:
+            at = self.action_step.armTarget
             if self.arm_index == Side.RIGHT:
-                self.action_step.armTarget.rArm = target
+                at.rArm = target
             else:
-                self.action_step.armTarget.lArm = target
+                at.lArm = target
             # TODO(mbforbes): Why is self.has_object set to True here?
             self.has_object = True
             self._update_menu()
@@ -341,21 +333,15 @@ class ActionStepMarker:
             ArmState
         '''
         if self.action_step.type == ActionStep.ARM_TARGET:
-            if self.arm_index == Side.RIGHT:
-                return self.action_step.armTarget.rArm
-            else:
-                return self.action_step.armTarget.lArm
+            t = self.action_step.armTarget
+            return t.rArm if self.arm_index == Side.RIGHT else t.lArm
         elif self.action_step.type == ActionStep.ARM_TRAJECTORY:
-            if self.arm_index == Side.RIGHT:
-                if traj_index is None:
-                    traj = self.action_step.armTrajectory.rArm
-                    traj_index = int(len(traj) / 2)
-                return self.action_step.armTrajectory.rArm[traj_index]
-            else:
-                if traj_index is None:
-                    traj = self.action_step.armTrajectory.lArm
-                    traj_index = int(len(traj) / 2)
-                return self.action_step.armTrajectory.lArm[traj_index]
+            t = self.action_step.armTrajectory
+            arm = t.rArm if self.arm_index == Side.RIGHT else t.lArm
+            # If traj_index not passed, use the middle one.
+            if traj_index is None:
+                traj_index = int(len(arm) / 2)
+            return arm[traj_index]
 
     def update_viz(self):
         '''Updates visualization fully.'''
@@ -556,21 +542,19 @@ class ActionStepMarker:
         ref_name = None
         if self.action_step.type == ActionStep.ARM_TARGET:
             # "Normal" step (saved pose).
-            if self.arm_index == Side.RIGHT:
-                ref_frame = self.action_step.armTarget.rArm.refFrame
-                ref_name = self.action_step.armTarget.rArm.refFrameObject.name
-            else:
-                ref_frame = self.action_step.armTarget.lArm.refFrame
-                ref_name = self.action_step.armTarget.lArm.refFrameObject.name
-
+            t = self.action_step.armTarget
+            arm = t.rArm if self.arm_index == Side.RIGHT else t.lArm
+            ref_frame = arm.refFrame
+            ref_name = arm.refFrameObject.name
         elif self.action_step.type == ActionStep.ARM_TRAJECTORY:
             # "Trajectory" step.
+            t = self.action_step.armTrajectory
             if self.arm_index == Side.RIGHT:
-                ref_frame = self.action_step.armTrajectory.rRefFrame
-                ref_name = self.action_step.armTrajectory.rRefFrameOject.name
+                ref_frame = t.rRefFrame
+                ref_name = t.rRefFrameOject.name
             else:
-                ref_frame = self.action_step.armTrajectory.lRefFrame
-                ref_name = self.action_step.armTrajectory.lRefFrameOject.name
+                ref_frame = t.lRefFrame
+                ref_name = t.lRefFrameOject.name
         else:
             rospy.logerr(
                 'Unhandled marker type: ' + str(self.action_step.type))
@@ -598,31 +582,27 @@ class ActionStepMarker:
 
         if self.action_step.type == ActionStep.ARM_TARGET:
             # Handle "normal" steps (saved poses).
+            t = self.action_step.armTarget
             if self.arm_index == Side.RIGHT:
-                self.action_step.armTarget.rArm = World.convert_ref_frame(
-                    self.action_step.armTarget.rArm, new_ref, new_ref_obj)
+                t.rArm = World.convert_ref_frame(t.rArm, new_ref, new_ref_obj)
             else:
-                self.action_step.armTarget.lArm = World.convert_ref_frame(
-                    self.action_step.armTarget.lArm, new_ref, new_ref_obj)
+                t.lArm = World.convert_ref_frame(t.lArm, new_ref, new_ref_obj)
         elif self.action_step.type == ActionStep.ARM_TRAJECTORY:
             # Handle trajectory steps.
-            for i in range(len(self.action_step.armTrajectory.timing)):
-                if self.arm_index == Side.RIGHT:
-                    arm_old = self.action_step.armTrajectory.rArm[i]
-                    arm_new = World.convert_ref_frame(
-                        arm_old, new_ref, new_ref_obj)
-                    self.action_step.armTrajectory.rArm[i] = arm_new
-                else:
-                    arm_old = self.action_step.armTrajectory.lArm[i]
-                    arm_new = World.convert_ref_frame(
-                        arm_old, new_ref, new_ref_obj)
-                    self.action_step.armTrajectory.lArm[i] = arm_new
+            t = self.action_step.armTrajectory
+            arm = t.rArm if self.arm_index == Side.RIGHT else t.lArm
+            for i in range(len(arm)):
+                arm_old = arm[i]
+                arm_new = World.convert_ref_frame(
+                    arm_old, new_ref, new_ref_obj)
+                arm[i] = arm_new
+            # Fix up reference frames.
             if self.arm_index == Side.RIGHT:
-                self.action_step.armTrajectory.rRefFrameObject = new_ref_obj
-                self.action_step.armTrajectory.rRefFrame = new_ref
+                t.rRefFrameObject = new_ref_obj
+                t.rRefFrame = new_ref
             else:
-                self.action_step.armTrajectory.lRefFrameObject = new_ref_obj
-                self.action_step.armTrajectory.lRefFrame = new_ref
+                t.lRefFrameObject = new_ref_obj
+                t.lRefFrame = new_ref
 
     def _is_hand_open(self):
         '''Returns whether the gripper is open for this action step.
