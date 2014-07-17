@@ -294,7 +294,7 @@ class ProgrammedAction:
         self.lock.acquire()
 
         for idx, marker in enumerate(self.r_markers + self.l_markers):
-            rospy.loginfo("[DEBUG]: trying marker " + idx)
+            rospy.loginfo("[DEBUG]: trying marker " + str(idx))
             # If we match the one we've clicked on, select it.
             if marker.get_uid() == uid:
                 marker.is_control_visible = is_selected
