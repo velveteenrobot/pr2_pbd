@@ -488,7 +488,6 @@ class TestEndToEnd(unittest.TestCase):
         # Make sure nothing's crashed.
         self.check_alive()
 
-    @unittest.skip("tmp")
     def test_action_and_step_navigation(self):
         '''Tests creating / switching between actions, and creating /
         switching between steps.
@@ -599,6 +598,7 @@ class TestEndToEnd(unittest.TestCase):
         # Make sure nothing's crashed.
         self.check_alive()
 
+    @unittest.skip("tmp")
     def test_moving_execution(self):
         '''Test moving the arms a few times and executing.'''
         # Ensure things are ready to go.

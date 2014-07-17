@@ -141,6 +141,7 @@ class ProgrammedAction:
 
     def _delete_step(self, to_delete):
         '''Deletes a step from the action'''
+        rospy.loginfo('Deleting step: ' + str(to_delete))
         if (len(self.r_links) > 0):
             self.r_links[self.r_links.keys()[-1]].action = Marker.DELETE
             self.l_links[self.l_links.keys()[-1]].action = Marker.DELETE
