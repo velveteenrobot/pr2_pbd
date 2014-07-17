@@ -149,7 +149,7 @@ SIDE_MULS = {'l': 1.0, "r": -1.0}
 
 # How long to wait for each step (saved pose) in an execution, in
 # seconds.
-EXECUTION_STEP_TIME = 4.0
+EXECUTION_STEP_TIME = 6.0
 
 # How close arm joints have to be to match.
 ARM_EPSILON_POSITION = 0.01
