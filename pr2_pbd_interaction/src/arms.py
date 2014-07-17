@@ -475,10 +475,14 @@ class Arms:
         ''' Function to replay the demonstrated two-arm action of type
         ProgrammedAction (must already be saved in this object).'''
         self.status = ExecutionStatus.EXECUTING
-
-        # Check if the very first precondition is met
         action_step = self.action.get_step(0)
-        if not Arms.is_condition_met(action_step.preCond):
+
+        # Make sure the step exists.
+        if action_step is None:
+            rospy.logwarn("First step does not exist.")
+            self.status = ExecutionStatus.CONDITION_ERROR
+        # Check if the very first precondition is met.
+        elif not Arms.is_condition_met(action_step.preCond):
             rospy.logwarn(
                 'First precond is not met, first make sure the robot is' +
                 'ready to execute action (hand object or free hands).')
@@ -592,12 +596,17 @@ class Arms:
             rospy.loginfo('Executing step ' + str(i))
             action_step = self.action.get_step(i)
 
+            # Make sure step exists.
+            if action_step is None:
+                rospy.logwarn("Step " + str(i) + " does not exist.")
+                self.status = ExecutionStatus.CONDITION_ERROR
+                break
             # Check that preconditions are met
-            if not Arms.is_condition_met(action_step.preCond):
+            elif not Arms.is_condition_met(action_step.preCond):
                 rospy.logwarn(
                     '\tPreconditions of action step ' + str(i) + ' are not ' +
                     'satisfied. Aborting.')
-                self.status = ExecutionStatus.PREEMPTED
+                self.status = ExecutionStatus.CONDITION_ERROR
                 break
             else:
                 # Try executing.
@@ -611,7 +620,7 @@ class Arms:
                     rospy.logwarn(
                         '\tPost-conditions of action step ' + str(i) +
                         ' are not satisfied. Aborting.')
-                    self.status = ExecutionStatus.PREEMPTED
+                    self.status = ExecutionStatus.CONDITION_ERROR
                     break
 
             # Perhaps the execution was pre-empted by the user. Check

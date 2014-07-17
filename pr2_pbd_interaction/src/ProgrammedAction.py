@@ -14,10 +14,13 @@ import rospy
 import rosbag
 from pr2_pbd_interaction.msg import (
     ArmState, ActionStepSequence, ActionStep, ArmTarget, Side,
-    GripperAction, ArmTrajectory)
+    GripperAction, ArmTrajectory, GripperState)
 from action_step_marker import ActionStepMarker
 from std_msgs.msg import Header, ColorRGBA
 
+BASE_LINK = 'base_link'
+DEFAULT_GRIPPER_STATE = GripperState.CLOSED
+DEFAULT_REF_FRAME_NAME = BASE_LINK
 
 class ProgrammedAction:
     '''Class that holds information for one action'''
@@ -316,10 +319,6 @@ class ProgrammedAction:
     def select_step(self, step_id):
         ''' Makes the interactive marker for the indicated action
         step selected, by showing the 6D controls'''
-        n_steps = self.n_frames()
-        # TODO(mbforbes): Is this 0- or 1-based indexing? Or some
-        # calculated global ID? This should be made clear with variable
-        # names.
         self.marker_click_cb(step_id, True)
 
     def initialize_viz(self, object_list):
@@ -389,9 +388,15 @@ class ProgrammedAction:
             index (int): The step to get a gripper state for.
 
         Returns:
-            int: GripperSate.OPEN or GripperSate.CLOSED
+            int: GripperState.OPEN or GripperState.CLOSED. If the step
+                doesn't exist, returns DEFAULT_GRIPPER_STATE.
         '''
-        ga = self.get_step(index).gripperAction
+        step = self.get_step(index)
+        if step is None:
+            rospy.logerr(
+                "Step " + index + " doesn't exit. Can't get gripper state.")
+            return DEFAULT_GRIPPER_STATE
+        ga = step.gripperAction
         return ga.rGripper if arm_index == Side.RIGHT else ga.lGripper
 
     def get_step_ref_frame(self, arm_index, index):
@@ -403,16 +408,35 @@ class ProgrammedAction:
             index (int): Which number step to use.
 
         Returns:
-            str
+            str: If the step doesn't exist, returns
+                DEFAULT_REF_FRAME_NAME.
         '''
-        target = self.get_step(index).armTarget
+        step = self.get_step(index)
+        if step is None:
+            rospy.logerr(
+                "Step " + index + " doesn't exit. Can't get ref frame name.")
+            return DEFAULT_REF_FRAME_NAME
+        target = step.armTarget
         arm = target.rArm if arm_index == Side.RIGHT else target.lArm
         return arm.refFrameObject.name
 
     def get_step(self, index):
-        '''Returns a step of the action'''
+        '''Returns a step of the action.
+
+        Returns:
+            ActionStep|None
+        '''
+        # NOTE(mbforbes): For this lock to be meaningful, we have to
+        # checkt that the index is valid within it.
         self.lock.acquire()
-        requested_step = self.seq.seq[index]
+        n_steps = len(self.seq.seq)
+        if index < 0 or index >= n_steps:
+            rospy.logerr(
+                "Requested step index " + index + ", but only have " +
+                str(n_steps) + " steps.")
+            requested_step = None
+        else:
+            requested_step = self.seq.seq[index]
         self.lock.release()
         return requested_step
 
