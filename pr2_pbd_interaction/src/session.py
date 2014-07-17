@@ -11,6 +11,7 @@ import rospy
 
 # System builtins
 import os
+import threading
 import yaml
 
 # Local
@@ -320,7 +321,7 @@ class Session:
             selected_step (int): ID of the step selected.
         '''
         self._selected_step = selected_step
-        self._update_experiment_state()
+        self._async_update_experiment_state()
 
     def _get_experiment_state_cb(self, __):
         '''Response to the experiment state service call.
@@ -329,6 +330,15 @@ class Session:
             __ (GetExperimentStateRequest): Unused.
         '''
         return GetExperimentStateResponse(self._get_experiment_state())
+
+    def _async_update_experiment_state(self):
+        '''Launches a new thread to asynchronously update experiment
+        state.'''
+        threading.Thread(
+            group=None,
+            target=self._update_experiment_state,
+            name='experiment_state_publish_thread'
+        ).start()
 
     def _update_experiment_state(self):
         '''Publishes a message with the latest state.'''
