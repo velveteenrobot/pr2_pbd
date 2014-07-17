@@ -707,21 +707,23 @@ class Arms:
                 return False
 
         # If hand action, do it for both sides.
-        if (action_step.gripperAction.rGripper !=
+        if (action_step.gripperAction.rGripper.state !=
                 Arms.arms[Side.RIGHT].get_gripper_state()):
+            # TODO(mbforbes): Make this logging better (output 'close'
+            # or 'open' instead of numbers).
             rospy.loginfo(
                 '\tWill perform right gripper action ' +
-                str(action_step.gripperAction.rGripper))
+                str(action_step.gripperAction.rGripper.state))
             Arms.arms[Side.RIGHT].set_gripper(
-                action_step.gripperAction.rGripper)
+                action_step.gripperAction.rGripper.state)
             Response.perform_gaze_action(GazeGoal.FOLLOW_RIGHT_EE)
-        if (action_step.gripperAction.lGripper !=
+        if (action_step.gripperAction.lGripper.state !=
                 Arms.arms[Side.LEFT].get_gripper_state()):
             rospy.loginfo(
                 '\tWill perform left gripper action ' +
-                str(action_step.gripperAction.lGripper))
+                str(action_step.gripperAction.lGripper.state))
             Arms.arms[Side.LEFT].set_gripper(
-                action_step.gripperAction.lGripper)
+                action_step.gripperAction.lGripper.state)
             Response.perform_gaze_action(GazeGoal.FOLLOW_LEFT_EE)
 
         # Wait for grippers to be done

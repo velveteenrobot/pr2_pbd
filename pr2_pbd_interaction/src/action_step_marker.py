@@ -612,7 +612,7 @@ class ActionStepMarker:
         '''
         ga = self.action_step.gripperAction
         gstate = ga.rGripper if self.arm_index == Side.RIGHT else ga.lGripper
-        return gstate == GripperState.OPEN
+        return gstate.state == GripperState.OPEN
 
     def _get_traj_pose(self, index):
         '''Returns this trajectory's pose at index. Only applicable for

@@ -377,7 +377,7 @@ class ProgrammedAction:
         for action_step in self.seq.seq:
             gact = action_step.gripperAction
             gs = gact.rGripper if arm_index == Side.RIGHT else gact.lGripper
-            gripper_states += [gs]
+            gripper_states += [gs.state]
         self.lock.release()
         return gripper_states
 
@@ -464,8 +464,10 @@ class ProgrammedAction:
             l_obj = action_step.armTrajectory.lRefFrameObject
             copy.armTrajectory.rRefFrameObject = r_obj
             copy.armTrajectory.lRefFrameObject = l_obj
-        copy.gripperAction = GripperAction(action_step.gripperAction.rGripper,
-                                           action_step.gripperAction.lGripper)
+        copy.gripperAction = GripperAction(
+            GripperState(action_step.gripperAction.rGripper.state),
+            GripperState(action_step.gripperAction.lGripper.state)
+        )
         return copy
 
     @staticmethod

@@ -560,8 +560,8 @@ class Interaction:
                 self._arm_trajectory.l_ref_name  # lRefFrameObject (Object)
             )
             traj_step.gripperAction = GripperAction(
-                self.arms.get_gripper_state(Side.RIGHT),  # rGripper (uint8)
-                self.arms.get_gripper_state(Side.LEFT)  # lGripper (uint8)
+                GripperState(self.arms.get_gripper_state(Side.RIGHT)),
+                GripperState(self.arms.get_gripper_state(Side.LEFT))
             )
             self.session.add_step_to_action(
                 traj_step, self.world.get_frame_list())
@@ -592,8 +592,8 @@ class Interaction:
                 0.2  # lArmVelocity (float64)
             )
             step.gripperAction = GripperAction(
-                self.arms.get_gripper_state(Side.RIGHT),  # rGripper (uint8)
-                self.arms.get_gripper_state(Side.LEFT)  # lGripper (uint8)
+                GripperState(self.arms.get_gripper_state(Side.RIGHT)),
+                GripperState(self.arms.get_gripper_state(Side.LEFT))
             )
             self.session.add_step_to_action(step, self.world.get_frame_list())
             return [RobotSpeech.STEP_RECORDED, GazeGoal.NOD]
@@ -705,7 +705,9 @@ class Interaction:
             ]
             new_gripper_states[arm_index] = gripper_state
             step.gripperAction = GripperAction(
-                new_gripper_states[Side.RIGHT], new_gripper_states[Side.LEFT])
+                GripperState(new_gripper_states[Side.RIGHT]),
+                GripperState(new_gripper_states[Side.LEFT])
+            )
             self.session.add_step_to_action(step, self.world.get_frame_list())
 
     def _fix_trajectory_ref(self):
