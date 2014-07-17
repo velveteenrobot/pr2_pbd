@@ -707,7 +707,7 @@ class Arms:
             while((Arms.arms[Side.RIGHT].is_executing() or
                     Arms.arms[Side.LEFT].is_executing()) and not self.preempt):
                 rospy.sleep(TRAJECTORY_COMPLETE_SLEEP_INTERVAL)
-            rospy.lopginfo('\tTrajectory complete.')
+            rospy.loginfo('\tTrajectory complete.')
 
             # Verify that both arms succeeded.
             if (not Arms.arms[Side.RIGHT].is_successful() or
