@@ -91,7 +91,8 @@ RESPONSE_TRIMS = [
     RobotSpeech.RIGHT_HAND_OPENING,
     RobotSpeech.RIGHT_HAND_CLOSING,
     RobotSpeech.LEFT_HAND_OPENING,
-    RobotSpeech.LEFT_HAND_CLOSING
+    RobotSpeech.LEFT_HAND_CLOSING,
+    RobotSpeech.STOPPED_RECORDING_MOTION,
 ]
 
 # Sides (right and left)
@@ -267,6 +268,8 @@ class TestEndToEnd(unittest.TestCase):
             Command.START_RECORDING_MOTION, [RobotSpeech.ERROR_NO_SKILLS])
         self.cmd_assert_response(
             Command.SAVE_POSE, [RobotSpeech.ERROR_NO_SKILLS])
+        self.cmd_assert_response(
+            Command.START_RECORDING_MOTION, [RobotSpeech.ERROR_NO_SKILLS])
         # No explicit check for record object pose, but it doesn't hurt
         self.cmd_assert_response(
             Command.RECORD_OBJECT_POSE, [
@@ -759,26 +762,40 @@ class TestEndToEnd(unittest.TestCase):
         # Ensure things are ready to go.
         self.check_alive()
 
-        # Create action, move arms to bottom position.
+        # Create action, move arms to bottom position & save pose.
         self.cmd_assert_response(
             Command.CREATE_NEW_ACTION, [RobotSpeech.SKILL_CREATED])
         self.move_arms_up(0.0)
+        self.cmd_assert_response(
+            Command.SAVE_POSE, [RobotSpeech.STEP_RECORDED])
+
+        # Try telling it to stop recording before it's started.
+        self.cmd_assert_response(
+            Command.STOP_RECORDING_MOTION,
+            [RobotSpeech.MOTION_NOT_RECORDING])
 
         # Start recording motion
         self.cmd_assert_response(
             Command.START_RECORDING_MOTION,
             [RobotSpeech.STARTED_RECORDING_MOTION])
 
-        # Move arms to several different increments.
+        # Move arms to several different increments. Try saying 'start
+        # recording motion' in the middle to ensure it handles this.
         for portion in SIMPLE_EXECUTION_PORTIONS:
             self.move_arms_up(portion)
+            self.cmd_assert_response(
+                Command.START_RECORDING_MOTION,
+                [RobotSpeech.ALREADY_RECORDING_MOTION])
 
         # Stop recording motion.
         self.cmd_assert_response(
             Command.STOP_RECORDING_MOTION,
             [RobotSpeech.STOPPED_RECORDING_MOTION])
 
-        # Move arms to bottom position.
+        # Move arms to bottom position (we have saved a pose there so
+        # this isn't necessary from an execution standpoint. However,
+        # from a test standpoint, we do this so we don't immediately
+        # detect that the trajectory as completed.
         self.move_arms_up(0.0)
 
         # We'll track the execution ended response, but we get the
