@@ -488,6 +488,7 @@ class TestEndToEnd(unittest.TestCase):
         # Make sure nothing's crashed.
         self.check_alive()
 
+    @unittest.skip("tmp")
     def test_action_and_step_navigation(self):
         '''Tests creating / switching between actions, and creating /
         switching between steps.
@@ -598,33 +599,45 @@ class TestEndToEnd(unittest.TestCase):
         # Make sure nothing's crashed.
         self.check_alive()
 
-    @unittest.skip("haven't converted to response assertions yet")
     def test_moving_execution(self):
         '''Test moving the arms a few times and executing.'''
         # Ensure things are ready to go.
         self.check_alive()
 
-        self.command_pub.publish(Command(Command.CREATE_NEW_ACTION))
+        self.cmd_assert_response(
+            Command.CREATE_NEW_ACTION, [RobotSpeech.SKILL_CREATED])
 
         # Move arms to several different increments, saving each time.
         for portion in SIMPLE_EXECUTION_PORTIONS:
             self.move_arms_up(portion)
-            self.command_pub.publish(Command(Command.SAVE_POSE))
+            self.cmd_assert_response(
+                Command.SAVE_POSE, [RobotSpeech.STEP_RECORDED])
 
         # Move arms to bottom position.
         self.move_arms_up(0.0)
 
+        # We'll track the execution ended response, but we get the
+        # pre-count here to avoid a race condition.
+        prev_stopped = self.build_prev_resp_map(
+            [RobotSpeech.EXECUTION_ENDED])
+
         # Execute!
-        self.command_pub.publish(Command(Command.EXECUTE_ACTION))
+        self.cmd_assert_response(
+            Command.EXECUTE_ACTION, [RobotSpeech.START_EXECUTION])
 
         # Make sure the arms get there by checking one of the joints.
         side = SIDES[0]
         joint_name = self.arm_control_joints[side][0]
+        # We expect to get to the final postion for that side.
         expected_position = (
             SIDE_MULS[side] * ARM_UP_POSITION * SIMPLE_EXECUTION_PORTIONS[-1])
+        # ... and we're willing to wait for all steps.
         wait_time = EXECUTION_STEP_TIME * len(SIMPLE_EXECUTION_PORTIONS)
         self.assertJointCloseWithinTimeout(
             joint_name, expected_position, ARM_EPSILON_POSITION, wait_time)
+
+        # Make sure it says that it's finished successfully.
+        self.assert_response(prev_stopped, EXECUTION_END_RESPONSE_TIMEOUT)
 
         # Make sure nothing's crashed.
         self.check_alive()
