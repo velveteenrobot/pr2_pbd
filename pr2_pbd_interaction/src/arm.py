@@ -35,7 +35,7 @@ from trajectory_msgs.msg import JointTrajectoryPoint, JointTrajectory
 
 # Local
 from pr2_pbd_interaction.msg import GripperState, ArmMode, Side
-from World import World
+from world import World
 
 
 # ######################################################################

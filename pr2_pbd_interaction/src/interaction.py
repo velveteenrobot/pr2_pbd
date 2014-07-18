@@ -30,7 +30,7 @@ from pr2_pbd_speech_recognition.msg import Command
 from pr2_social_gaze.msg import GazeGoal
 from Response import Response
 from RobotSpeech import RobotSpeech
-from World import World
+from world import World
 
 # ######################################################################
 # Module level constants

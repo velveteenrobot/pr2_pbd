@@ -22,7 +22,7 @@ from pr2_pbd_interaction.msg import (
     ArmState, GripperState, ActionStep, Side, ExecutionStatus)
 from pr2_social_gaze.msg import GazeGoal
 from Response import Response
-from World import World
+from world import World
 
 
 # ######################################################################

@@ -30,7 +30,7 @@ from visualization_msgs.msg import (
 from arms import Arms
 from pr2_pbd_interaction.msg import (
     ActionStep, ArmState, GripperState, Object, Side)
-from World import World
+from world import World
 
 
 # ######################################################################
