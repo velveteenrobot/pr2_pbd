@@ -35,7 +35,7 @@ from trajectory_msgs.msg import JointTrajectoryPoint, JointTrajectory
 
 # Local
 from pr2_pbd_interaction.msg import GripperState, ArmMode, Side
-from World import World
+from world import World
 
 
 # ######################################################################
@@ -501,7 +501,7 @@ class Arm:
         '''Returns the current end effector pose for the arm.
 
         Args:
-            base_link (str, optional); The reference frame for the end
+            base_link (str, optional): The reference frame for the end
                 effector pose to use. Defaults to 'base_link'.
 
         Returns:

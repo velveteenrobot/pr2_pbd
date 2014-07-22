@@ -28,9 +28,9 @@ from pr2_pbd_interaction.msg import (
 from pr2_pbd_interaction.srv import Ping, PingResponse
 from pr2_pbd_speech_recognition.msg import Command
 from pr2_social_gaze.msg import GazeGoal
-from Response import Response
-from RobotSpeech import RobotSpeech
-from World import World
+from response import Response
+from robot_speech import RobotSpeech
+from world import World
 
 # ######################################################################
 # Module level constants
@@ -67,8 +67,7 @@ class Interaction:
         # Create main components.
         self.arms = Arms()
         self.world = World()
-        self.session = Session(
-            object_list=self.world.get_frame_list(), is_debug=True)
+        self.session = Session(object_list=self.world.get_frame_list())
 
         # ROS publishers and subscribers.
         self._viz_publisher = rospy.Publisher(
@@ -192,7 +191,7 @@ class Interaction:
                 # TODO(mbforbes): Do we ever have r/l target(s)? When does
                 # this happen?
                 for side in [Side.RIGHT, Side.LEFT]:
-                    target = action.get_requested_targets(side)
+                    target = action.get_requested_target(side)
                     if target is not None:
                         self.arms.start_move_to_pose(target, side)
                         action.reset_targets(side)

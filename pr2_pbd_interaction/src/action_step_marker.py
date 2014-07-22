@@ -30,7 +30,7 @@ from visualization_msgs.msg import (
 from arms import Arms
 from pr2_pbd_interaction.msg import (
     ActionStep, ArmState, GripperState, Object, Side)
-from World import World
+from world import World
 
 
 # ######################################################################
@@ -112,6 +112,16 @@ class ActionStepMarker:
     _marker_click_cb = None
 
     def __init__(self, step_number, arm_index, action_step, marker_click_cb):
+        '''
+        Args:
+            step_number (int): The 1-based index of the step.
+            arm_index (int): Side.RIGHT or Side.LEFT
+            action_step (ActionStep): The action step this marker marks.
+            marker_click_cb (function(int,bool)): The function to call
+                when a marker is clicked. Pass the uid of the marker
+                (as calculated by get_uid(...) as well as whether it's
+                selected.
+        '''
         if ActionStepMarker._im_server is None:
             im_server = InteractiveMarkerServer(TOPIC_IM_SERVER)
             ActionStepMarker._im_server = im_server
@@ -130,6 +140,25 @@ class ActionStepMarker:
         self._menu_handler = None
         self._prev_is_reachable = None
         ActionStepMarker._marker_click_cb = marker_click_cb
+
+    # ##################################################################
+    # Static methods: Public (API)
+    # ##################################################################
+
+    @staticmethod
+    def get_uid(arm_index, step_number):
+        '''Returns a unique id of the marker of the arm_index arm with
+        step_number step.
+
+        Args:
+            arm_index (int): Side.RIGHT or Side.LEFT
+            step_number (int): The number of the step.
+
+        Returns:
+            int: A number that is unique given the step number and arm
+                index.
+        '''
+        return len(ARM_NAMES) * step_number + arm_index
 
     # ##################################################################
     # Static methods: Internal ("private")
@@ -184,13 +213,13 @@ class ActionStepMarker:
     # ##################################################################
 
     def get_uid(self):
-        '''Returns a unique id of the marker.
+        '''Returns a unique id for this marker.
 
         Returns:
             int: A number that is unique given the step number and arm
                 index.
         '''
-        return len(ARM_NAMES) * self.step_number + self.arm_index
+        return ActionStepMarker.get_uid(self.arm_index, self.step_number)
 
     def decrease_id(self):
         '''Reduces the step index of the marker.'''
