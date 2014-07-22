@@ -109,24 +109,6 @@ class WorldObject:
         self.is_removed = False
         self.menu_handler.insert('Remove from scene', callback=self.remove)
 
-    def remove(self, __):
-        '''Function for removing object from the world.
-
-        Args:
-            __ (???): Unused
-        '''
-        rospy.loginfo('Will remove object: ' + self.get_name())
-        self.is_removed = True
-
-    def assign_name(self, name):
-        '''Function for assigning a different name to this object.
-
-        Args:
-            name (str): The new name.
-        '''
-        self.assigned_name = name
-        self.object.name = name
-
     def get_name(self):
         '''Return this object's name.
 
@@ -141,9 +123,30 @@ class WorldObject:
         else:
             return self.assigned_name
 
-    def decrease_index(self):
-        '''Function to decrese object index.'''
-        self.index -= 1
+    # TODO(mbforbes): Re-implement object recognition or remove
+    # this dead code.
+
+    # def remove(self, __):
+    #     '''Function for removing object from the world.
+
+    #     Args:
+    #         __ (???): Unused
+    #     '''
+    #     rospy.loginfo('Will remove object: ' + self.get_name())
+    #     self.is_removed = True
+
+    # def assign_name(self, name):
+    #     '''Function for assigning a different name to this object.
+
+    #     Args:
+    #         name (str): The new name.
+    #     '''
+    #     self.assigned_name = name
+    #     self.object.name = name
+
+    # def decrease_index(self):
+    #     '''Function to decrese object index.'''
+    #     self.index -= 1
 
 
 class World:
@@ -830,35 +833,33 @@ class World:
         if is_recognized:
             # TODO(mbforbes): Re-implement object recognition or remove
             # this dead code.
-            # Temporary HACK for testing.
-            # Will remove all recognition completely if this works.
             return False
-            # Check if there is already an object
-            for i in range(len(World.objects)):
-                distance = World.pose_distance(
-                    World.objects[i].object.pose, pose)
-                if distance < OBJ_ADD_DIST_THRESHHOLD:
-                    if World.objects[i].is_recognized:
-                        rospy.loginfo(
-                            'Previously recognized object at the same ' +
-                            'location, will not add this object.')
-                        return False
-                    else:
-                        rospy.loginfo(
-                            'Previously unrecognized object at the same ' +
-                            'location, will replace it with the recognized ' +
-                            'object.')
-                        to_remove = i
-                        break
+            # # Check if there is already an object
+            # for i in range(len(World.objects)):
+            #     distance = World.pose_distance(
+            #         World.objects[i].object.pose, pose)
+            #     if distance < OBJ_ADD_DIST_THRESHHOLD:
+            #         if World.objects[i].is_recognized:
+            #             rospy.loginfo(
+            #                 'Previously recognized object at the same ' +
+            #                 'location, will not add this object.')
+            #             return False
+            #         else:
+            #             rospy.loginfo(
+            #                 'Previously unrecognized object at the same ' +
+            #                 'location, will replace it with the recognized '+
+            #                 'object.')
+            #             to_remove = i
+            #             break
 
-            # Remove any duplicate objects.
-            if to_remove is not None:
-                self._remove_object(to_remove)
+            # # Remove any duplicate objects.
+            # if to_remove is not None:
+            #     self._remove_object(to_remove)
 
-            # Actually add the object.
-            self._add_new_object_internal(
-                pose, dimensions, is_recognized, mesh)
-            return True
+            # # Actually add the object.
+            # self._add_new_object_internal(
+            #     pose, dimensions, is_recognized, mesh)
+            # return True
         else:
             # Whether whether we already have an object at ~ the same
             # location (and if so, don't add).
