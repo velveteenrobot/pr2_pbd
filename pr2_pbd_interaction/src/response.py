@@ -130,16 +130,9 @@ class Response:
         if Response._sound_client is None:
             Response._sound_client = SoundClient()
 
-    def respond(self):
-        '''Triggers the response (that has already been set).'''
-        speech_resp, gaze_resp = self.function_to_call(self.function_param)
-        # Speech response
-        if speech_resp is not None:
-            Response.say(speech_resp)
-            Response.respond_with_sound(speech_resp)
-        # Gaze response
-        if gaze_resp is not None:
-            Response.perform_gaze_action(gaze_resp)
+    # ##################################################################
+    # Static methods: Public (API)
+    # ##################################################################
 
     @staticmethod
     def perform_gaze_action(gaze_action):
@@ -231,3 +224,18 @@ class Response:
         else:
             Response._sound_client.playWave(
                 os.path.join(SOUNDS_DIR, SOUND_UNKNOWN + SOUND_FILEFORMAT))
+
+    # ##################################################################
+    # Instance methods: Public (API)
+    # ##################################################################
+
+    def respond(self):
+        '''Triggers the response (that has already been set).'''
+        speech_resp, gaze_resp = self.function_to_call(self.function_param)
+        # Speech response
+        if speech_resp is not None:
+            Response.say(speech_resp)
+            Response.respond_with_sound(speech_resp)
+        # Gaze response
+        if gaze_resp is not None:
+            Response.perform_gaze_action(gaze_resp)
