@@ -29,7 +29,7 @@ from pr2_pbd_interaction.srv import Ping, PingResponse
 from pr2_pbd_speech_recognition.msg import Command
 from pr2_social_gaze.msg import GazeGoal
 from response import Response
-from RobotSpeech import RobotSpeech
+from robotspeech import RobotSpeech
 from world import World
 
 # ######################################################################

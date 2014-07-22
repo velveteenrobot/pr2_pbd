@@ -21,7 +21,7 @@ from sound_play.msg import SoundRequest
 from sound_play.libsoundplay import SoundClient
 
 # Local
-from RobotSpeech import RobotSpeech
+from robotspeech import RobotSpeech
 from pr2_social_gaze.msg import GazeGoal, GazeAction
 from pr2_pbd_interaction.msg import RobotSound
 
