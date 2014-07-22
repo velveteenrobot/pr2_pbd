@@ -297,18 +297,6 @@ class Session:
                 "Can't get number of frames (steps): No actions created yet.")
             return 0
 
-    # TODO(mbforbes): Undoing deletions (e.g. resume_deleted_step) is no
-    # longer a part of the system. Check whether to remove this dead
-    # code or leave in in case someone wants to use it later.
-
-    def resume_deleted_step(self):
-        '''Resumes the deleted step.'''
-        if self.n_actions() > 0:
-            self.actions[self.current_action_index].resume_deleted_step()
-        else:
-            rospy.logwarn("Can't resume deleted step: No actions created yet.")
-        self._update_experiment_state()
-
     # ##################################################################
     # Instance methods: Internal ("private")
     # ##################################################################

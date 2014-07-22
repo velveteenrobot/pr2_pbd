@@ -192,7 +192,7 @@ class Interaction:
                 # TODO(mbforbes): Do we ever have r/l target(s)? When does
                 # this happen?
                 for side in [Side.RIGHT, Side.LEFT]:
-                    target = action.get_requested_targets(side)
+                    target = action.get_requested_target(side)
                     if target is not None:
                         self.arms.start_move_to_pose(target, side)
                         action.reset_targets(side)
