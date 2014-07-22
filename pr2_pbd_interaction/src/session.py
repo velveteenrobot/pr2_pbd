@@ -52,7 +52,7 @@ class Session:
         Args:
             object_list ([Object]): List of Object (as defined by
                 Object.msg), the current reference frames.
-            is_debug (?): Whether to run in 'debug mode,' which
+            is_debug (bool): Whether to run in 'debug mode,' which
                 currently means loading the experiment number from a
                 rospy param rather than going through an interactive
                 loop to acquire it from user input.
