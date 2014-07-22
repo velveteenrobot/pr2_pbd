@@ -47,15 +47,11 @@ SERVICE_GET_EXP_STATE = 'get_experiment_state'
 class Session:
     '''This class holds and maintains experimental data.'''
 
-    def __init__(self, object_list, is_debug=False):
+    def __init__(self, object_list):
         '''
         Args:
             object_list ([Object]): List of Object (as defined by
                 Object.msg), the current reference frames.
-            is_debug (bool): Whether to run in 'debug mode,' which
-                currently means loading the experiment number from a
-                rospy param rather than going through an interactive
-                loop to acquire it from user input.
         '''
         # Private attirbutes.
         self._is_reload = rospy.get_param(PARAM_IS_RELOAD)
@@ -64,18 +60,13 @@ class Session:
         self._object_list = object_list
 
         # Get the data directory by determining where to save via the
-        # experiment number.
-        if is_debug:
-            # "Debug:" experiment number from ROS param (see launch
-            # file to set this).
-            self._exp_number = rospy.get_param(PARAM_EXP_NO)
-            self._data_dir = self._get_data_dir(self._exp_number)
-            if not os.path.exists(self._data_dir):
-                os.makedirs(self._data_dir)
-        else:
-            # Not "debug:" get experiment number through interactive
-            # prompt with user in console.
-            self._get_participant_id()
+        # experiment number. The experiment number is loaded from a ROS
+        # param (see launch file to alter; can also set via command line
+        # specification).
+        self._exp_number = rospy.get_param(PARAM_EXP_NO)
+        self._data_dir = self._get_data_dir(self._exp_number)
+        if not os.path.exists(self._data_dir):
+            os.makedirs(self._data_dir)
         rospy.set_param(PARAM_DATA_DIR, self._data_dir)
 
         # Public attributes.
@@ -385,37 +376,6 @@ class Session:
         # Once we've got an action, we can query / return things.
         action = self.actions[self.current_action_index]
         return action.get_gripper_states(arm_index)
-
-    def _get_participant_id(self):
-        '''Gets the experiment number from the command line.'''
-        while self._exp_number is None:
-            try:
-                self._exp_number = int(raw_input(
-                    'Please enter participant ID:'))
-            except ValueError:
-                rospy.logerr("Participant ID needs to be a number.")
-                # TODO(mbforbes): Shouldn't there be a continue
-                # statement here? Otherwise, won't we just go ahead and
-                # use the invalid experiment number?
-
-            self._data_dir = Session._get_data_dir(self._exp_number)
-            if not os.path.exists(self._data_dir):
-                os.makedirs(self._data_dir)
-            else:
-                rospy.logwarn(
-                    'A directory for this participant ID already exists: ' +
-                    self._data_dir)
-                overwrite = raw_input(
-                    'Do you want to overwrite? Type r to reload the last ' +
-                    'state of the experiment. [y/n/r]')
-                if overwrite == 'y':
-                    continue
-                elif overwrite == 'n':
-                    self._exp_number = None
-                elif overwrite == 'r':
-                    self._is_reload = True
-                else:
-                    rospy.logerr('Invalid response, try again.')
 
     def _load_session_state(self, object_list):
         '''Loads the experiment state from disk.

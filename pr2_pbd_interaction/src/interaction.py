@@ -67,8 +67,7 @@ class Interaction:
         # Create main components.
         self.arms = Arms()
         self.world = World()
-        self.session = Session(
-            object_list=self.world.get_frame_list(), is_debug=True)
+        self.session = Session(object_list=self.world.get_frame_list())
 
         # ROS publishers and subscribers.
         self._viz_publisher = rospy.Publisher(

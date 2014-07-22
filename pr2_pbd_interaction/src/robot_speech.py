@@ -104,15 +104,6 @@ class RobotSpeech:
     MOTION_NOT_RECORDING = 'Not currently recording motion.'
     ALREADY_RECORDING_MOTION = 'Already recording motion.'
 
-    # TODO(mbforbes): Remove the following as they're currently
-    # impossible to reach.
-    POSE_DELETED = 'Last pose deleted'
-    ALL_POSES_RESUMED = 'All poses resumed.'
-    POSE_RESUMED = 'Pose resumed'
-    DELETED_SKILL = 'Deleted action'
-    ACTION_ALREADY_STARTED = (
-        'Action already started. Say, delete all steps, to start over.')
-
     def __init__(self):
         self.speech_publisher = rospy.Publisher(TOPIC_SPEECH, SoundRequest)
         self.marker_publisher = rospy.Publisher(TOPIC_MARKER, Marker)
