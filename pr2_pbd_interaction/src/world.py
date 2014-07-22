@@ -270,11 +270,11 @@ class World:
                 best_dist = dist
                 chosen_obj = ref_frame
         if chosen_obj is None:
-            rospy.info('Did not find a similar object.')
+            rospy.loginfo('Did not find a similar object.')
         else:
             rospy.loginfo('Object dissimilarity is --- ' + str(best_dist))
             if best_dist > OBJ_SIMILAR_DIST_THRESHHOLD:
-                rospy.info('Found some objects, but not similar enough.')
+                rospy.loginfo('Found some objects, but not similar enough.')
                 chosen_obj = None
             else:
                 rospy.loginfo(
