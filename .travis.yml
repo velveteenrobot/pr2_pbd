@@ -23,7 +23,7 @@ before_install:
 install:
 # Update package list and install new versions.
     - sudo apt-get update
-    - sudo apt-get upgrade
+    - sudo apt-get upgrade --fix-missing
 # First, move code to correct place. Also Travis-CI specific.
     - mkdir -p ~/rosbuild_ws
     - cd ..; mv pr2_pbd ~/rosbuild_ws/
@@ -66,4 +66,5 @@ script:
 #    - rostest pr2_pbd_interaction test_endtoend.test
 # Linter: last resort to getting *something* useful to run on Travis :-)
 # NOTE(mbforbes): Add more files to this as they're completed.
-    - pep8 pr2_pbd_interaction/src/interaction.py
+    - roscd pr2_pbd_interaction
+    - pep8 src/*.py test/*.py nodes/*.py

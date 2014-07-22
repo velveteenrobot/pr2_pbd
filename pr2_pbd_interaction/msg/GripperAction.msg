@@ -1,2 +1,2 @@
-uint8 rGripper
-uint8 lGripper
+GripperState rGripper
+GripperState lGripper

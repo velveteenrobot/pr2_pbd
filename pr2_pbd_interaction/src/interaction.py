@@ -19,19 +19,18 @@ import threading
 from visualization_msgs.msg import MarkerArray
 
 # Local
-from World import World
-from RobotSpeech import RobotSpeech
-from Session import Session
-from Response import Response
-from Arms import Arms
-from Arm import ArmMode
+from arm import ArmMode
+from arms import Arms
+from session import Session
 from pr2_pbd_interaction.msg import (
     ArmState, GripperState, ActionStep, ArmTarget, Object, GripperAction,
     ArmTrajectory, ExecutionStatus, GuiCommand, Side)
 from pr2_pbd_interaction.srv import Ping, PingResponse
 from pr2_pbd_speech_recognition.msg import Command
 from pr2_social_gaze.msg import GazeGoal
-
+from response import Response
+from robot_speech import RobotSpeech
+from world import World
 
 # ######################################################################
 # Module level constants
@@ -39,6 +38,7 @@ from pr2_social_gaze.msg import GazeGoal
 
 EXECUTION_Z_OFFSET = -0.00
 UPDATE_WAIT_SECONDS = 0.1
+BASE_LINK = 'base_link'
 
 
 # ######################################################################
@@ -67,8 +67,7 @@ class Interaction:
         # Create main components.
         self.arms = Arms()
         self.world = World()
-        self.session = Session(
-            object_list=self.world.get_frame_list(), is_debug=True)
+        self.session = Session(object_list=self.world.get_frame_list())
 
         # ROS publishers and subscribers.
         self._viz_publisher = rospy.Publisher(
@@ -192,7 +191,7 @@ class Interaction:
                 # TODO(mbforbes): Do we ever have r/l target(s)? When does
                 # this happen?
                 for side in [Side.RIGHT, Side.LEFT]:
-                    target = action.get_requested_targets(side)
+                    target = action.get_requested_target(side)
                     if target is not None:
                         self.arms.start_move_to_pose(target, side)
                         action.reset_targets(side)
@@ -250,29 +249,7 @@ class Interaction:
                 rospy.logwarn(
                     'Ignoring speech command during execution: ' + strCmd)
         else:
-            switch_command = 'SWITCH_TO_ACTION'
-            # The 'swtich to action' command has the action number at
-            # the end of it, so we need to check for that.
-            if switch_command in strCmd:
-                # Pull of the action number.
-                action_no = strCmd[len(switch_command):]
-                action_no = int(action_no)
-                # TODO(mbforbes): Shouldn't this check be about the
-                # action number existing rather than having 1 action?
-                if self.session.n_actions() > 0:
-                    self.session.switch_to_action(
-                        action_no, self.world.get_frame_list())
-                    response = Response(
-                        self._empty_response,
-                        [RobotSpeech.SWITCH_SKILL + str(action_no),
-                            GazeGoal.NOD])
-                else:
-                    response = Response(
-                        self._empty_response,
-                        [RobotSpeech.ERROR_NO_SKILLS, GazeGoal.SHAKE])
-                response.respond()
-            else:
-                rospy.logwarn('This command (' + strCmd + ') is unknown.')
+            rospy.logwarn('This command (' + strCmd + ') is unknown.')
 
     def _gui_command_cb(self, command):
         '''Callback for when a GUICommand is received.
@@ -573,18 +550,18 @@ class Interaction:
             self._fix_trajectory_ref()
             # Note that [:] is a shallow copy, copying references to
             # each element into a new list.
-            traj_step.arm_trajectory = ArmTrajectory(
-                self._arm_trajectory.rArm[:],  # rArm (ArmState[])
-                self._arm_trajectory.lArm[:],  # lArm (ArmState[])
-                self._arm_trajectory.timing[:],  # timing (duration[])
-                self._arm_trajectory.r_ref,  # rRefFrame (uint8)
-                self._arm_trajectory.l_ref,  # lRefFrame (uint8)
-                self._arm_trajectory.r_ref_name,  # rRefFrameObject (Object)
-                self._arm_trajectory.l_ref_name  # lRefFrameObject (Object)
+            traj_step.armTrajectory = ArmTrajectory(
+                self._arm_trajectory.rArm[:],  # (ArmState[])
+                self._arm_trajectory.lArm[:],  # (ArmState[])
+                self._arm_trajectory.timing[:],  # (duration[])
+                self._arm_trajectory.rRefFrame,  # (uint8)
+                self._arm_trajectory.lRefFrame,  # (uint8)
+                self._arm_trajectory.rRefFrameObject,  # (Object)
+                self._arm_trajectory.lRefFrameObject  # (Object)
             )
             traj_step.gripperAction = GripperAction(
-                self.arms.get_gripper_state(Side.RIGHT),  # rGripper (uint8)
-                self.arms.get_gripper_state(Side.LEFT)  # lGripper (uint8)
+                GripperState(self.arms.get_gripper_state(Side.RIGHT)),
+                GripperState(self.arms.get_gripper_state(Side.LEFT))
             )
             self.session.add_step_to_action(
                 traj_step, self.world.get_frame_list())
@@ -615,8 +592,8 @@ class Interaction:
                 0.2  # lArmVelocity (float64)
             )
             step.gripperAction = GripperAction(
-                self.arms.get_gripper_state(Side.RIGHT),  # rGripper (uint8)
-                self.arms.get_gripper_state(Side.LEFT)  # lGripper (uint8)
+                GripperState(self.arms.get_gripper_state(Side.RIGHT)),
+                GripperState(self.arms.get_gripper_state(Side.LEFT))
             )
             self.session.add_step_to_action(step, self.world.get_frame_list())
             return [RobotSpeech.STEP_RECORDED, GazeGoal.NOD]
@@ -728,7 +705,9 @@ class Interaction:
             ]
             new_gripper_states[arm_index] = gripper_state
             step.gripperAction = GripperAction(
-                new_gripper_states[Side.RIGHT], new_gripper_states[Side.LEFT])
+                GripperState(new_gripper_states[Side.RIGHT]),
+                GripperState(new_gripper_states[Side.LEFT])
+            )
             self.session.add_step_to_action(step, self.world.get_frame_list())
 
     def _fix_trajectory_ref(self):
@@ -740,60 +719,73 @@ class Interaction:
         altering all steps in the trajctory to be relative to the same
         reference frame (again, separate for right and left arms).
         '''
-        # First, find the dominant reference frame (e.g. robot base,
+        # First, get objects from the world.
+        frame_list = self.world.get_frame_list()
+
+        # Next, find the dominant reference frame (e.g. robot base,
         # an object).
-        r_ref, r_ref_name = self._find_dominant_ref(self._arm_trajectory.rArm)
-        l_ref, l_ref_name = self._find_dominant_ref(self._arm_trajectory.lArm)
+        t = self._arm_trajectory
+        r_ref_n, r_ref_obj = self._find_dominant_ref(t.rArm, frame_list)
+        l_ref_n, l_ref_obj = self._find_dominant_ref(t.lArm, frame_list)
 
         # Next, alter all trajectory steps (ArmState's) so that they use
         # the dominant reference frame as their reference frame.
         for i in range(len(self._arm_trajectory.timing)):
-            self._arm_trajectory.rArm[i] = World.convert_ref_frame(
+            t.rArm[i] = World.convert_ref_frame(
                 self._arm_trajectory.rArm[i],  # arm_frame (ArmState)
-                r_ref,  # ref_frame (int)
-                r_ref_name  # ref_frame_obj (str)
+                r_ref_n,  # ref_frame (int)
+                r_ref_obj  # ref_frame_obj (Objet)
             )
-            self._arm_trajectory.lArm[i] = World.convert_ref_frame(
+            t.lArm[i] = World.convert_ref_frame(
                 self._arm_trajectory.lArm[i],  # arm_frame (ArmState)
-                l_ref,  # ref_frame (int)
-                l_ref_name  # ref_frame_obj (str)
+                l_ref_n,  # ref_frame (int)
+                l_ref_obj  # ref_frame_obj (Objet)
             )
 
         # Save the dominant ref. frame no./name in the trajectory for
         # reference.
-        self._arm_trajectory.r_ref = r_ref
-        self._arm_trajectory.l_ref = l_ref
-        self._arm_trajectory.r_ref_name = r_ref_name
-        self._arm_trajectory.l_ref_name = l_ref_name
+        t.rRefFrame = r_ref_n
+        t.lRefFrame = l_ref_n
+        t.rRefFrameObject = r_ref_obj
+        t.lRefFrameObject = l_ref_obj
 
-    def _find_dominant_ref(self, arm_traj):
+    def _find_dominant_ref(self, arm_traj, frame_list):
         '''Finds the most dominant reference frame in a continuous
         trajectory.
 
         Args:
             arm_traj (ArmState[]): List of arm states that form the arm
                 trajectory.
+            frame_list ([Object]): List of Object (as defined by
+                Object.msg), the current reference frames.
 
         Returns:
-            (int, str): Tuple of the dominant reference frame's number
-                (as one of the constants available in ArmState to be set
-                as ArmState.refFrame) and name.
+            (int, Object): Tuple of the dominant reference frame's
+                number (as one of the constants available in ArmState to
+                be set as ArmState.refFrame) and Object (as in
+                Object.msg).
         '''
-        ref_names = self.world.get_frame_list()
-        ref_counts = Counter()
-
         # Cycle through all arm states and check their reference frames.
         # Whichever one is most frequent becomes the dominant one.
+        robot_base = Object(name=BASE_LINK)
+        ref_counts = Counter()
         for arm_state in arm_traj:
-            if arm_state.refFrameName in ref_names:
-                ref_counts[arm_state.refFrameName] += 1
+            # We only track objects that
+            if arm_state.refFrame == ArmState.ROBOT_BASE:
+                ref_counts[robot_base] += 1
+            elif arm_state.refFrameObject in frame_list:
+                ref_counts[arm_state.refFrameObject] += 1
             else:
                 rospy.logwarn(
                     'Ignoring object with reference frame name '
-                    + arm_state.refFrameName
+                    + arm_state.refFrameObject.name
                     + ' because the world does not have this object.')
-        dominant_ref_name = ref_counts.most_common(1)[0][0]
-        return World.get_ref_from_name(dominant_ref_name), dominant_ref_name
+
+        # Get most common obj.
+        dominant_ref_obj = ref_counts.most_common(1)[0][0]
+
+        # Find the frame number (int) and return with the object.
+        return World.get_ref_from_name(dominant_ref_obj.name), dominant_ref_obj
 
     def _save_arm_to_trajectory(self):
         '''Saves current arm state into continuous trajectory.'''
@@ -817,8 +809,8 @@ class Interaction:
             Arms.get_ee_state(Side.RIGHT),  # (Pose)
             Arms.get_ee_state(Side.LEFT)]  # (Pose)
         joint_poses = [
-            Arms.get_joint_state(Side.RIGHT),  # ([float64])
-            Arms.get_joint_state(Side.LEFT)]  # ([float64])
+            Arms.get_joint_positions(Side.RIGHT),  # ([float64])
+            Arms.get_joint_positions(Side.LEFT)]  # ([float64])
 
         states = [None, None]
         rel_ee_poses = [None, None]
@@ -852,6 +844,7 @@ class Interaction:
     def _end_execution(self):
         '''Says a response and performs a gaze action for when an action
         execution ends.'''
+        rospy.loginfo("Execution ended. Status: " + str(self.arms.status))
         if self.arms.status == ExecutionStatus.SUCCEEDED:
             # Execution completed successfully.
             Response.say(RobotSpeech.EXECUTION_ENDED)
