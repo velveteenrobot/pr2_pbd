@@ -146,7 +146,7 @@ class ActionStepMarker:
     # ##################################################################
 
     @staticmethod
-    def get_uid(arm_index, step_number):
+    def calc_uid(arm_index, step_number):
         '''Returns a unique id of the marker of the arm_index arm with
         step_number step.
 
@@ -219,7 +219,7 @@ class ActionStepMarker:
             int: A number that is unique given the step number and arm
                 index.
         '''
-        return ActionStepMarker.get_uid(self.arm_index, self.step_number)
+        return ActionStepMarker.calc_uid(self.arm_index, self.step_number)
 
     def decrease_id(self):
         '''Reduces the step index of the marker.'''

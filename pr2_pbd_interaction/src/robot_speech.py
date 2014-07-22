@@ -33,7 +33,7 @@ TEXT_POSITION = Point(0.5, 0.5, 1.45)
 TEXT_ORIENTATION = Quaternion(0, 0, 0, 1)
 TEXT_POSE = Pose(TEXT_POSITION, TEXT_ORIENTATION)
 TEXT_SCALE = Vector3(0.06, 0.06, 0.06)
-TEXT_COLOR = COLORRGBA(0.0, 1.0, 0.0, 0.8)  # green
+TEXT_COLOR = ColorRGBA(0.0, 1.0, 0.0, 0.8)  # green
 
 # TODO(mbforbes): This should be refactored so it's in only one module.
 BASE_LINK = 'base_link'
@@ -135,7 +135,7 @@ class RobotSpeech:
         marker = Marker(
             type=Marker.TEXT_VIEW_FACING,
             id=TEXT_MARKER_ID,
-            lifetime=TEXT_LIFETIME,
+            lifetime=TEXT_MARKER_LIFETIME,
             pose=TEXT_POSE,
             scale=TEXT_SCALE,
             header=Header(frame_id=BASE_LINK),

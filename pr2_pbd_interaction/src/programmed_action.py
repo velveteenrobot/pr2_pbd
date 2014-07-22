@@ -63,7 +63,7 @@ class ProgrammedAction:
             step_click_cb (function(int)): The function to call when a
                 step is clicked on (normally in the GUI). The function
                 should take the UID of the step as calculated in
-                ActionStepMarker.get_uid(...).
+                ActionStepMarker.calc_uid(...).
         '''
         # Initialize a bunch of state.
         self.seq = ActionStepSequence()
@@ -102,7 +102,7 @@ class ProgrammedAction:
     # ##################################################################
 
     @staticmethod
-    def _update_if_edited(self, markers, arm_state):
+    def _update_if_edited(markers, arm_state):
         '''Updates the first marker in markers that is edited by setting
         its target to arm_state.
 
@@ -439,7 +439,7 @@ class ProgrammedAction:
 
         Args:
             uid (int): The unique ID for the action step marker, as can
-                be calculated by ActionStepMarker.get_uid(...).
+                be calculated by ActionStepMarker.calc_uid(...).
             is_selected(bool): Whether the marker denoted by uid was
                 selected (True) or de-selected (False).
 
@@ -467,7 +467,7 @@ class ProgrammedAction:
 
         Args:
             step_id (int): The unique ID for the action step marker, as
-                can be calculated by ActionStepMarker.get_uid(...).
+                can be calculated by ActionStepMarker.calc_uid(...).
         '''
         self.marker_click_cb(step_id, True)
 
@@ -680,7 +680,7 @@ class ProgrammedAction:
         end = markers[to_index].get_absolute_position(is_start=False)
         return Marker(
             type=Marker.ARROW,
-            id=ActionStepMarker.get_uid(arm_index, to_index),
+            id=ActionStepMarker.calc_uid(arm_index, to_index),
             lifetime=LINK_MARKER_LIFETIME,
             scale=LINK_SCALE,
             header=Header(frame_id=BASE_LINK),

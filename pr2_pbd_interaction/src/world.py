@@ -123,17 +123,17 @@ class WorldObject:
         else:
             return self.assigned_name
 
+    def remove(self, __):
+        '''Function for removing object from the world.
+
+        Args:
+            __ (???): Unused
+        '''
+        rospy.loginfo('Will remove object: ' + self.get_name())
+        self.is_removed = True
+
     # TODO(mbforbes): Re-implement object recognition or remove
     # this dead code.
-
-    # def remove(self, __):
-    #     '''Function for removing object from the world.
-
-    #     Args:
-    #         __ (???): Unused
-    #     '''
-    #     rospy.loginfo('Will remove object: ' + self.get_name())
-    #     self.is_removed = True
 
     # def assign_name(self, name):
     #     '''Function for assigning a different name to this object.
