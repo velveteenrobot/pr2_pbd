@@ -59,6 +59,13 @@ PAUSE_SECONDS = 2.0
 # How long to allow for a command response to come in.
 DEFAULT_CMD_RESP_TIMEOUT = 1.0
 
+# The robot's social gazes take a long time in simulation. This can
+# screw up things like recording object poses, as that code doesn't wait
+# for the robot's head to fully look down before it tries to capture and
+# use a point cloud. This is the amount we wait before calling a 'record
+# object pose' command to allow the head movement to settle.
+HEAD_SETTLING_WAIT_TIME = 5.0
+
 # How long to allow for a "record object pose" operation.
 RECORD_OBJECT_POSE_TIMEOUT = 20.0
 
@@ -150,6 +157,11 @@ SIDE_MULS = {'l': 1.0, "r": -1.0}
 # How long to wait for each step (saved pose) in an execution, in
 # seconds.
 EXECUTION_STEP_TIME = 6.0
+
+# How long to wait for each step (trajectory) in an execution, in
+# seconds.
+TRAJ_STEP_TIME = EXECUTION_STEP_TIME + ARM_MOVE_PAUSE
+
 
 # How close arm joints have to be to match.
 ARM_EPSILON_POSITION = 0.01
@@ -270,6 +282,7 @@ class TestEndToEnd(unittest.TestCase):
         self.cmd_assert_response(
             Command.START_RECORDING_MOTION, [RobotSpeech.ERROR_NO_SKILLS])
         # No explicit check for record object pose, but it doesn't hurt
+        rospy.sleep(HEAD_SETTLING_WAIT_TIME)
         self.cmd_assert_response(
             Command.RECORD_OBJECT_POSE, [
                 RobotSpeech.START_STATE_RECORDED,
@@ -749,7 +762,8 @@ class TestEndToEnd(unittest.TestCase):
         self.check_alive()
 
     def test_trajectory(self):
-        '''Test moving the arms a few times and executing.'''
+        '''Test recording trajectory of moving the arms a few times and
+        executing.'''
         # Ensure things are ready to go.
         self.check_alive()
 
@@ -806,12 +820,164 @@ class TestEndToEnd(unittest.TestCase):
             SIDE_MULS[side] * ARM_OUT_PAN * SIMPLE_EXECUTION_PORTIONS[-1])
         # ... and we're willing to wait for all steps. This is a
         # traejctory, so it takes more time per "step."
-        wait_time = EXECUTION_STEP_TIME * len(SIMPLE_EXECUTION_PORTIONS)
+        wait_time = TRAJ_STEP_TIME * len(SIMPLE_EXECUTION_PORTIONS)
         self.assertJointCloseWithinTimeout(
             joint_name, expected_position, ARM_EPSILON_POSITION, wait_time)
 
         # Make sure it says that it's finished successfully.
         self.assert_response(prev_stopped, EXECUTION_END_RESPONSE_TIMEOUT)
+
+        # Make sure nothing's crashed.
+        self.check_alive()
+
+    def test_relative_objects(self):
+        '''Tests saved poses / execution where object relativeness
+        should happen.
+
+        This should only pass, though will only exercise relativeness
+        code if there is an object the PR2 can see.
+
+        It doesn't test moving the object around, so in a sense this is
+        'exercising' relativeness rather than testing it. Adding some
+        Gazebo calls to do this would be pretty cool!
+        '''
+        # Ensure things are ready to go.
+        self.check_alive()
+
+        self.cmd_assert_response(
+            Command.CREATE_NEW_ACTION, [RobotSpeech.SKILL_CREATED])
+
+        # Move arms out of the way so we can see objects.
+        self.move_arms_up(1.0)
+
+        # Look for objects (hopefully we find them...).
+        rospy.sleep(HEAD_SETTLING_WAIT_TIME)
+        self.cmd_assert_response(
+            Command.RECORD_OBJECT_POSE, [
+                RobotSpeech.START_STATE_RECORDED,
+                RobotSpeech.OBJECT_NOT_DETECTED,
+            ],
+            RECORD_OBJECT_POSE_TIMEOUT
+        )
+
+        # Move arms to bottom position to start exercising relativeness
+        # code immediately.
+        self.move_arms_up(0.0)
+
+        # Move arms to several different increments, saving each time.
+        for portion in SIMPLE_EXECUTION_PORTIONS:
+            self.move_arms_up(portion)
+            self.cmd_assert_response(
+                Command.SAVE_POSE, [RobotSpeech.STEP_RECORDED])
+
+        # Move arms out of the way so we can see objects.
+        self.move_arms_up(1.0)
+
+        # We'll track the execution ended response, but we get the
+        # pre-count here to avoid a race condition.
+        prev_stopped = self.build_prev_resp_map(
+            [RobotSpeech.EXECUTION_ENDED])
+
+        # Execute! (We first wait for the head to settle, and during
+        # execution allocate extra time for it to find objects).
+        rospy.sleep(HEAD_SETTLING_WAIT_TIME)
+        self.cmd_assert_response(
+            Command.EXECUTE_ACTION,
+            [RobotSpeech.START_EXECUTION],
+            DEFAULT_CMD_RESP_TIMEOUT + RECORD_OBJECT_POSE_TIMEOUT
+        )
+
+        # Make sure the arms get there by checking one of the joints.
+        side = SIDES[0]
+        joint_name = self.arm_control_joints[side][0]
+        # We expect to get to the final postion for that side.
+        expected_position = (
+            SIDE_MULS[side] * ARM_OUT_PAN * SIMPLE_EXECUTION_PORTIONS[-1])
+        # ... and we're willing to wait for all steps.
+        wait_time = EXECUTION_STEP_TIME * len(SIMPLE_EXECUTION_PORTIONS)
+        self.assertJointCloseWithinTimeout(
+            joint_name, expected_position, ARM_EPSILON_POSITION, wait_time)
+
+        # Make sure it says that it's finished successfully. Because the
+        # above might have retunred immedaitely given that we have to
+        # move the arms up to detect objects before the start of the
+        # execution, we give it the wait time as well.
+        self.assert_response(
+            prev_stopped, wait_time + EXECUTION_END_RESPONSE_TIMEOUT)
+
+        # Make sure nothing's crashed.
+        self.check_alive()
+
+    def test_relative_objects_trajectory(self):
+        '''Test moving the arms a few times and executing.'''
+        # Ensure things are ready to go.
+        self.check_alive()
+
+        # Create action, record object pose, move arms to bottom
+        # position & save pose.
+        self.cmd_assert_response(
+            Command.CREATE_NEW_ACTION, [RobotSpeech.SKILL_CREATED])
+        self.move_arms_up(1.0)
+        rospy.sleep(HEAD_SETTLING_WAIT_TIME)
+        self.cmd_assert_response(
+            Command.RECORD_OBJECT_POSE, [
+                RobotSpeech.START_STATE_RECORDED,
+                RobotSpeech.OBJECT_NOT_DETECTED,
+            ],
+            RECORD_OBJECT_POSE_TIMEOUT
+        )
+        self.move_arms_up(0.0)
+        self.cmd_assert_response(
+            Command.SAVE_POSE, [RobotSpeech.STEP_RECORDED])
+
+        # Start recording motion
+        self.cmd_assert_response(
+            Command.START_RECORDING_MOTION,
+            [RobotSpeech.STARTED_RECORDING_MOTION])
+
+        # Move arms to several different increments.
+        for portion in SIMPLE_EXECUTION_PORTIONS:
+            self.move_arms_up(portion)
+
+        # Stop recording motion.
+        self.cmd_assert_response(
+            Command.STOP_RECORDING_MOTION,
+            [RobotSpeech.STOPPED_RECORDING_MOTION])
+
+        # Move arms out of way for object pose recording.
+        self.move_arms_up(1.0)
+
+        # We'll track the execution ended response, but we get the
+        # pre-count here to avoid a race condition.
+        prev_stopped = self.build_prev_resp_map(
+            [RobotSpeech.EXECUTION_ENDED])
+
+        # Execute! (Note head settle time and object record time.)
+        rospy.sleep(HEAD_SETTLING_WAIT_TIME)
+        self.cmd_assert_response(
+            Command.EXECUTE_ACTION,
+            [RobotSpeech.START_EXECUTION],
+            DEFAULT_CMD_RESP_TIMEOUT + RECORD_OBJECT_POSE_TIMEOUT
+        )
+
+        # Make sure the arms get there by checking one of the joints.
+        side = SIDES[0]
+        joint_name = self.arm_control_joints[side][0]
+        # We expect to get to the final postion for that side.
+        expected_position = (
+            SIDE_MULS[side] * ARM_OUT_PAN * SIMPLE_EXECUTION_PORTIONS[-1])
+        # ... and we're willing to wait for all steps. This is a
+        # traejctory, so it takes more time per "step".
+        wait_time = TRAJ_STEP_TIME * len(SIMPLE_EXECUTION_PORTIONS)
+        self.assertJointCloseWithinTimeout(
+            joint_name, expected_position, ARM_EPSILON_POSITION, wait_time)
+
+        # Make sure it says that it's finished successfully. Because we
+        # had to start with the arms up, the above might have returned
+        # immedaitely! Therefore, we give it the entire trajectory
+        # duration as well to timeout.
+        self.assert_response(
+            prev_stopped, wait_time + EXECUTION_END_RESPONSE_TIMEOUT)
 
         # Make sure nothing's crashed.
         self.check_alive()
