@@ -501,7 +501,7 @@ class Arm:
         '''Returns the current end effector pose for the arm.
 
         Args:
-            base_link (str, optional); The reference frame for the end
+            base_link (str, optional): The reference frame for the end
                 effector pose to use. Defaults to 'base_link'.
 
         Returns:
