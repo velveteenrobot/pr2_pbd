@@ -462,12 +462,9 @@ class Arm:
 
         if joints is None:
             rospy.logdebug('IK out of bounds, will use the seed directly.')
-            # NOTE(mbforbes): The next line wasn't there, which caused
-            # the seed to NOT be used (and IK to fail completely). I'm
-            # thinking / hoping it's correct to add it back in. All
-            # absolute poses that errenously fail should now work. The
-            # problem will be if the behavior changes for relative.
-            joints = seed
+            # TODO(mbforbes): Add forward-kinematics check with seed,
+            # see if computed pose is close to ee_pose, and if so just
+            # use seed (i.e. set joints = seed).
         else:
             rollover = array((array(joints) - array(seed)) / pi, int)
             joints -= ((rollover + (sign(rollover) + 1) / 2) / 2) * 2 * pi
