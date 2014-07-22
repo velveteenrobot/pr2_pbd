@@ -40,7 +40,7 @@ from visualization_msgs.msg import (
 # Local
 from pr2_pbd_interaction.msg import Object, ArmState
 from pr2_social_gaze.msg import GazeGoal
-from Response import Response
+from response import Response
 
 
 # ######################################################################
