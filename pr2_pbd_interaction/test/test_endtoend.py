@@ -37,7 +37,7 @@ from sound_play.msg import SoundRequest
 from pr2_pbd_interaction.msg import Side, GuiCommand, GripperState
 from pr2_pbd_speech_recognition.msg import Command
 from pr2_pbd_interaction.srv import Ping
-from robotspeech import RobotSpeech
+from robot_speech import RobotSpeech
 import unittest
 
 
