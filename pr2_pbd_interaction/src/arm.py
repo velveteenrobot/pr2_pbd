@@ -26,7 +26,8 @@ from sensor_msgs.msg import JointState
 # ROS 3rd party
 from arm_navigation_msgs.srv import FilterJointTrajectory
 from kinematics_msgs.srv import (
-    GetKinematicSolverInfo, GetPositionIK, GetPositionIKRequest)
+    GetKinematicSolverInfo, GetPositionIK, GetPositionIKRequest, GetPositionFK,
+    GetPositionFKRequest)
 from pr2_mechanism_msgs.srv import SwitchController, SwitchControllerRequest
 from pr2_controllers_msgs.msg import (
     JointTrajectoryAction, JointTrajectoryGoal, Pr2GripperCommandAction,
@@ -74,6 +75,10 @@ GRIPPER_OPEN_THRESHOLD = 0.078
 # The minimum arm movement that 'counts' as moved.
 ARM_MOVEMENT_THRESHOLD = 0.02
 
+# How close an FK-computed pose has to be to the desired pose to use the
+# joints (supplied to FK) instead of failing (IK already failed here).
+FK_THRESHOLD = 0.02
+
 # The minimum time that an arm needs to remain stable across to be
 # counted as stable.
 ARM_STABLE_DURATION = rospy.Duration(5.0)  # seconds
@@ -113,11 +118,14 @@ IK_REQUEST_TIMEOUT = 4.0  # seconds
 
 # PR2
 PR2_SERVICE_PREFIX = 'pr2_'
+BASE_LINK = 'base_link'
 
 # ROS topics/services/actions
 TOPIC_JOINT_STATES = 'joint_states'
 SERVICE_IK_INFO_POSTFIX = '_arm_kinematics_simple/get_ik_solver_info'
 SERVICE_IK_POSTFIX = '_arm_kinematics_simple/get_ik'
+SERVICE_FK_INFO_POSTFIX = '_arm_kinematics_simple/get_fk_solver_info'
+SERVICE_FK_POSTFIX = '_arm_kinematics_simple/get_fk'
 SERVICE_TRAJ_FILTER = '/trajectory_filter/filter_trajectory'
 SERVICE_SWITCH_CONTROLLER = 'pr2_controller_manager/switch_controller'
 ACTION_GRIPPER_CONTROLLER_POSTFIX = '_gripper_controller/gripper_action'
@@ -190,12 +198,19 @@ class Arm:
         self.ik_limits = None
         self._setup_ik()
 
+        # Set up Forward Kinematics
+        self.fk_srv = None
+        self.fk_request = None
+        self._setup_fk()
+
+        # Set up gripper controller.
         gripper_name = side_prefix + ACTION_GRIPPER_CONTROLLER_POSTFIX
         self.gripper_client = SimpleActionClient(
             gripper_name, Pr2GripperCommandAction)
         self.gripper_client.wait_for_server()
         rospy.loginfo('Got response form gripper server for ' + side + ' arm.')
 
+        # Set up trajectory filtering service.
         rospy.wait_for_service(SERVICE_TRAJ_FILTER)
         self.filter_service = rospy.ServiceProxy(
             SERVICE_TRAJ_FILTER, FilterJointTrajectory)
@@ -382,7 +397,7 @@ class Arm:
         output = self.filter_service(
             trajectory=trajectory, allowed_time=TRAJECTORY_ALLOWED_TIME)
         rospy.loginfo(
-            'Trajectory for ' + self._side() + ' arm has been filtered.')
+            '\tTrajectory for ' + self._side() + ' arm has been filtered.')
 
         # TODO(mcakmak): Check output.error_code.
         traj_goal = JointTrajectoryGoal()
@@ -461,15 +476,43 @@ class Arm:
             joints = self._solve_ik(ee_pose)
 
         if joints is None:
-            rospy.logdebug('IK out of bounds, will use the seed directly.')
-            # TODO(mbforbes): Add forward-kinematics check with seed,
-            # see if computed pose is close to ee_pose, and if so just
-            # use seed (i.e. set joints = seed).
+            rospy.logdebug('IK out of bounds, considering the seed directly.')
+            # IK failed, but let's see if FK with the passed seed will
+            # give us a pose close enough to the ee_pose that it's
+            # usable.
+            fk_pose = self.get_fk_for_joints(seed)
+            if Arm.get_distance_bw_poses(ee_pose, fk_pose) < FK_THRESHOLD:
+                joints = seed
+                rospy.logdebug('IK out of bounds, but FK close; using seed.')
         else:
             rollover = array((array(joints) - array(seed)) / pi, int)
             joints -= ((rollover + (sign(rollover) + 1) / 2) / 2) * 2 * pi
 
         return joints
+
+    def get_fk_for_joints(self, joints):
+        '''Finds the FK solution (EE pose) for given joint positions.
+
+        Args:
+            joints ([float]) Seven-element list of arm joint positions.
+
+        Returns:
+            Pose|None: The arm's pose when its joints are at the
+                specified values, or None if there was a problem finding
+                an FK solution
+        '''
+        self.fk_request.robot_state.joint_state.position = joints
+        pose = None
+        try:
+            resp = self.fk_srv(self.fk_request)
+            pose_idx = resp.fk_link_names.index(self.ee_name)
+            pose = resp.pose_stamped[pose_idx].pose
+        except rospy.ServiceException:
+            rospy.logwarn(
+                'There was an error with the FK request for joints: ' +
+                str(joints))
+        finally:
+            return pose
 
     def reset_movement_history(self):
         '''Clears the saved history of arm movements.'''
@@ -494,12 +537,12 @@ class Arm:
         '''
         return self._side()
 
-    def get_ee_state(self, ref_frame='base_link'):
+    def get_ee_state(self, ref_frame=BASE_LINK):
         '''Returns the current end effector pose for the arm.
 
         Args:
-            base_link (str, optional): The reference frame for the end
-                effector pose to use. Defaults to 'base_link'.
+            ref_frame (str, optional): The reference frame for the end
+                effector pose to use. Defaults to BASE_LINK.
 
         Returns:
             Pose|None: Pose if success, None if there was a failure in
@@ -666,9 +709,34 @@ class Arm:
 
         request = self.ik_request.ik_request
         request.ik_link_name = ik_links[0]
-        request.pose_stamped.header.frame_id = 'base_link'
+        request.pose_stamped.header.frame_id = BASE_LINK
         request.ik_seed_state.joint_state.name = self.ik_joints
         request.ik_seed_state.joint_state.position = [0] * len(self.ik_joints)
+
+    def _setup_fk(self):
+        '''Sets up services for forward kinematics.'''
+        side = self._side()
+
+        # Get FK info service.
+        fk_info_srv_name = PR2_SERVICE_PREFIX + side + SERVICE_FK_INFO_POSTFIX
+        rospy.wait_for_service(fk_info_srv_name)
+        fk_info_srv = rospy.ServiceProxy(
+            fk_info_srv_name, GetKinematicSolverInfo)
+        ks_info = fk_info_srv().kinematic_solver_info
+        rospy.loginfo('FK info service has responded for ' + side + ' arm.')
+
+        # Get FK service.
+        fk_srv_name = PR2_SERVICE_PREFIX + side + SERVICE_FK_POSTFIX
+        rospy.wait_for_service(fk_srv_name)
+        self.fk_srv = rospy.ServiceProxy(
+            fk_srv_name, GetPositionFK, persistent=True)
+        rospy.loginfo('FK service has responded for ' + side + ' arm.')
+
+        # Set up common parts of an FK request.
+        self.fk_request = GetPositionFKRequest()
+        self.fk_request.header.frame_id = BASE_LINK
+        self.fk_request.fk_link_names = ks_info.link_names
+        self.fk_request.robot_state.joint_state.name = ks_info.joint_names
 
     def _side(self):
         '''Returns the string 'right' or 'left' depending on arm side.

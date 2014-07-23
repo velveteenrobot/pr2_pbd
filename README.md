@@ -85,7 +85,7 @@ $ alias realrobot='unset ROBOT; unset ROS_HOSTNAME; export ROS_MASTER_URI=http:/
 The required python packages are listed in `requirements.txt` and can be installed with pip:
 
 ```bash
-$ pip install -r requirements.txt
+$ sudo pip install -r requirements.txt
 ```
 Note that if you use python with virtualenv, you want it to still find the apt-get installed python packages, as not all are available or work property with pip. Do this by starting virtualenv with: `virtualenv --system-site-packages ENV` ([more info](http://virtualenv.readthedocs.org/en/latest/virtualenv.html#the-system-site-packages-option)).
 
@@ -120,7 +120,7 @@ $ roslaunch pr2_pbd_interaction pbd_backend.launch
 # Terminal 1: PR2 dashboard
 $ realrobot  # points ROS to PR2
 $ rosrun rqt_pr2_dashboard rqt_pr2_dashboard  # dashboard to monitor PR2
-# Make sure both runstops are OK (far right icon), and motors OK (red gear icon)
+# Make sure both runstops are OK (far right icon), and motors OK (gear icon)
 
 # Terminal 2: PbD frontend
 $ realrobot  # points ROS to PR2
@@ -139,15 +139,33 @@ $ roslaunch pr2_pbd_interaction pbd_simulation_stack.launch
 
 
 ## Tests
+### Desktop
+```bash
+$ rostest pr2_pbd_interaction test_endtoend.test
+```
+
+### PR2
+First, launch everything from the [Running On the PR2 section](#on-the-pr2) (above), _except_ for Terminal 2 on the desktop (`pbd_frontend`). Instead, run the following in a new terminal on `c1`:
+```bash
+$ roscd pr2_pbd_interaction
+$ python test/test_endtoend_realrobot.py
+```
+
+### Code coverage
+After running the tests, you can view code coverage by opening `~/.ros/htmlcov/index.html` with a web browser. Note that you can also view code coverage for normal execution by passing `coverage:=true` when launching `pr2_pbd_backend`.
+
+With an acout setup at [Coveralls](https://coveralls.io), edit the `.coveralls.yml` with your repo_token, and track coverage there by running `coveralls --data_file ~/.ros/.coverage`.
+
+
+
+## Contributing
+Before creating a pull request, please do the following things:
+
 0. Lint your Python to pep8 standards by running `pep8 file1 file2 ...`.
 
-0. Run the tests with `rostest pr2_pbd_interaction test_endtoend.test`.
+0. Run the tests on your desktop (see above).
 
-0. View code coverage by opening `~/.ros/htmlcov/index.html` with a web broswer.
-
-0. With an acout setup at [Coveralls](https://coveralls.io), edit the `.coveralls.yml` with your repo_token, and track coverage there by running `coveralls --data_file ~/.ros/.coverage`.
-
-To do all of these steps automatically (linting common directories, opening coverage report with Google Chrome, assuming Coveralls and `.coveralls.yml` correctly setup), we have provided a script:
+To lint all python files in common directories, run the tests on the desktop, open up code coverage with Google Chrome, and send the results to Coveralls (assuming Coveralls account and `.coveralls.yml` correctly setup), we have provided a script:
 ```bash
 $ roscd pr2_pbd_interaction; ./scripts/test_and_coverage.sh
 ```
