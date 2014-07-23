@@ -483,7 +483,7 @@ class Arm:
             fk_pose = self.get_fk_for_joints(seed)
             if Arm.get_distance_bw_poses(ee_pose, fk_pose) < FK_THRESHOLD:
                 joints = seed
-                rospy.loginfo('IK out of bounds, but FK close; using seed.')
+                rospy.logdebug('IK out of bounds, but FK close; using seed.')
         else:
             rollover = array((array(joints) - array(seed)) / pi, int)
             joints -= ((rollover + (sign(rollover) + 1) / 2) / 2) * 2 * pi
