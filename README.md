@@ -85,7 +85,7 @@ $ alias realrobot='unset ROBOT; unset ROS_HOSTNAME; export ROS_MASTER_URI=http:/
 The required python packages are listed in `requirements.txt` and can be installed with pip:
 
 ```bash
-$ pip install -r requirements.txt
+$ sudo pip install -r requirements.txt
 ```
 Note that if you use python with virtualenv, you want it to still find the apt-get installed python packages, as not all are available or work property with pip. Do this by starting virtualenv with: `virtualenv --system-site-packages ENV` ([more info](http://virtualenv.readthedocs.org/en/latest/virtualenv.html#the-system-site-packages-option)).
 
@@ -152,7 +152,7 @@ $ python test/test_endtoend_realrobot.py
 ```
 
 ### Code coverage
-After running the tests, you can view code coverage by opening `~/.ros/htmlcov/index.html` with a web broswer. Note that you can also view code coverage for noraml execution by passing `coverage:=true` when launching `pr2_pbd_backend`.
+After running the tests, you can view code coverage by opening `~/.ros/htmlcov/index.html` with a web browser. Note that you can also view code coverage for normal execution by passing `coverage:=true` when launching `pr2_pbd_backend`.
 
 With an acout setup at [Coveralls](https://coveralls.io), edit the `.coveralls.yml` with your repo_token, and track coverage there by running `coveralls --data_file ~/.ros/.coverage`.
 
