@@ -71,6 +71,10 @@ SERVICE_BB = 'find_cluster_bounding_box'
 SCALE_TEXT = Vector3(0.0, 0.0, 0.03)
 SURFACE_HEIGHT = 0.01  # 0.01 == 1cm (I think)
 OFFSET_OBJ_TEXT_Z = 0.06  # How high objects' labels are above them.
+# Object dimensions. I don't fully understand this, as it seems like
+# each object's dimensions should be extracted from the point cloud.
+# But apparently this works and is a default or something?
+DIMENSIONS_OBJ = Vector3(0.2, 0.2, 0.2)
 
 # Colors
 COLOR_OBJ = ColorRGBA(0.2, 0.8, 0.0, 0.6)
@@ -82,6 +86,13 @@ BASE_LINK = 'base_link'
 
 # Time
 MARKER_DURATION = rospy.Duration(2)
+# How long to pause when waiting for external code, like gaze actions or
+# object segmentation, to finish before checking again.
+PAUSE_SECONDS = rospy.Duration(0.1)
+# How long we're willing to wait for object recognition. We don't use a
+# rospy Duration because the calculations were done manually (this can
+# easily be changed if it's ever important).
+RECOGNITION_TIMEOUT_SECONDS = 5.0
 
 
 # ######################################################################
@@ -620,7 +631,7 @@ class World:
                             'confident model.')
                         self._add_new_object(
                             object_pose,
-                            Vector3(0.2, 0.2, 0.2),
+                            DIMENSIONS_OBJ,
                             True,
                             object_list.meshes[i]
                         )
@@ -645,61 +656,64 @@ class World:
 
     def update_object_pose(self):
         ''' Function to externally update an object pose.'''
+        # Look down at the table.
+        rospy.loginfo('Head attempting to look at table.')
         Response.perform_gaze_action(GazeGoal.LOOK_DOWN)
         while (Response.gaze_client.get_state() == GoalStatus.PENDING or
                Response.gaze_client.get_state() == GoalStatus.ACTIVE):
-            time.sleep(0.1)
-
+            rospy.sleep(PAUSE_SECONDS)
         if Response.gaze_client.get_state() != GoalStatus.SUCCEEDED:
             rospy.logerr('Could not look down to take table snapshot')
             return False
+        rospy.loginfo('Head is now (successfully) stairing at table.')
 
-        rospy.loginfo('Looking at table now.')
+        # Reset object recognition.
+        rospy.loginfo('About to attempt to reset object recognition.')
         goal = UserCommandGoal(UserCommandGoal.RESET, False)
         self._object_action_client.send_goal(goal)
         while (self._object_action_client.get_state() == GoalStatus.ACTIVE or
                self._object_action_client.get_state() == GoalStatus.PENDING):
-            time.sleep(0.1)
+            rospy.sleep(PAUSE_SECONDS)
         rospy.loginfo('Object recognition has been reset.')
         rospy.loginfo('STATUS: ' +
                       self._object_action_client.get_goal_status_text())
-        self._reset_objects()
-
+        self._reset_objects()  # Also do this internally.
         if self._object_action_client.get_state() != GoalStatus.SUCCEEDED:
             rospy.logerr('Could not reset recognition.')
             return False
 
         # Do segmentation
+        rospy.loginfo('About to attempt table segmentation.')
         goal = UserCommandGoal(UserCommandGoal.SEGMENT, False)
         self._object_action_client.send_goal(goal)
         while (self._object_action_client.get_state() == GoalStatus.ACTIVE or
                self._object_action_client.get_state() == GoalStatus.PENDING):
-            time.sleep(0.1)
+            rospy.sleep(PAUSE_SECONDS)
         rospy.loginfo('Table segmentation is complete.')
-        rospy.loginfo('STATUS: ' +
-                      self._object_action_client.get_goal_status_text())
-
+        rospy.loginfo(
+            'STATUS: ' + self._object_action_client.get_goal_status_text())
         if self._object_action_client.get_state() != GoalStatus.SUCCEEDED:
             rospy.logerr('Could not segment.')
             return False
 
         # Do recognition
+        rospy.loginfo('About to attempt object recognition.')
         goal = UserCommandGoal(UserCommandGoal.RECOGNIZE, False)
         self._object_action_client.send_goal(goal)
         while (self._object_action_client.get_state() == GoalStatus.ACTIVE or
                self._object_action_client.get_state() == GoalStatus.PENDING):
-            time.sleep(0.1)
+            rospy.sleep(PAUSE_SECONDS)
         rospy.loginfo('Objects on the table have been recognized.')
-        rospy.loginfo('STATUS: ' +
-                      self._object_action_client.get_goal_status_text())
+        rospy.loginfo(
+            'STATUS: ' + self._object_action_client.get_goal_status_text())
 
         # Record the result
         if self._object_action_client.get_state() == GoalStatus.SUCCEEDED:
-            wait_time = 0
-            total_wait_time = 5
-            while not World.has_objects() and wait_time < total_wait_time:
-                time.sleep(0.1)
-                wait_time += 0.1
+            wait_time = 0.0
+            while (not World.has_objects() and
+                    wait_time < RECOGNITION_TIMEOUT_SECONDS):
+                rospy.sleep(PAUSE_SECONDS)
+                wait_time += PAUSE_SECONDS
 
             if not World.has_objects():
                 rospy.logerr('Timeout waiting for a recognition result.')
@@ -717,7 +731,7 @@ class World:
         self._object_action_client.send_goal(goal)
         while (self._object_action_client.get_state() == GoalStatus.ACTIVE or
                self._object_action_client.get_state() == GoalStatus.PENDING):
-            time.sleep(0.1)
+            rospy.sleep(PAUSE_SECONDS)
         rospy.loginfo('Object recognition has been reset.')
         rospy.loginfo('STATUS: ' +
                       self._object_action_client.get_goal_status_text())
@@ -866,8 +880,9 @@ class World:
             for wobj in World.objects:
                 if (World.pose_distance(wobj.object.pose, pose)
                         < OBJ_ADD_DIST_THRESHHOLD):
-                    rospy.loginfo('Previously detected object at the same ' +
-                                  'location, will not add this object.')
+                    rospy.loginfo(
+                        'Previously detected object at the same location, ' +
+                        'will not add this object.')
                     return False
 
             # Actually add the object.

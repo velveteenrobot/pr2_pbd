@@ -669,8 +669,8 @@ class ProgrammedAction:
 
         Args:
             arm_index (int): Side.RIGHT or Side.LEFT
-            to_index (int): The index of the 'end' marker (the latter of the
-                two).
+            to_index (int): The index of the 'end' marker (the latter of
+                the two).
 
         Returns:
             Marker
