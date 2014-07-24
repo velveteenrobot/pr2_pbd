@@ -1,14 +1,6 @@
 #!/usr/bin/env python
 
-'''End-to-end tests for PbD.
-
-TODOs:
-    - ensure that all Command/GuiCommands are met with the correct
-    verbal response. Currently many errors could slip by. This isn't
-    too hard to do.
-
-    - check whether freezing / relaxing arms really works.
-'''
+'''End-to-end tests for PbD.'''
 
 # ######################################################################
 # Imports
