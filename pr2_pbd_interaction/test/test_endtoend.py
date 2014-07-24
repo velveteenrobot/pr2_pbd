@@ -1234,30 +1234,38 @@ class TestEndToEnd(unittest.TestCase):
                 close to the expected_val position.
         '''
         # We check this generously by checking once before and after the
-        # timeout.
-        if self.are_floats_close(
-                self.joint_positions[joint_name], expected_val, epsilon):
+        # timeout. (Note that we record the start, minimum, maximum,
+        # and end values for debugging.)
+        start = self.joint_positions[joint_name]
+        min_ = start
+        max_ = start
+        if self.are_floats_close(start, expected_val, epsilon):
             return
 
         # Check / sleep through timeout
         timeout_dur = rospy.Duration(timeout)
         start = rospy.Time.now()
         while rospy.Time.now() - start < timeout_dur:
-            if self.are_floats_close(
-                    self.joint_positions[joint_name], expected_val, epsilon):
+            val = self.joint_positions[joint_name]
+            min_ = val if val < min_ else min_
+            max_ = val if val > max_ else max_
+            if self.are_floats_close(val, expected_val, epsilon):
                 return
             rospy.sleep(JOINT_REFRESH_PAUSE_SECONDS)
 
         # Check once after timeout.
-        if self.are_floats_close(
-                self.joint_positions[joint_name], expected_val, epsilon):
+        end = self.joint_positions[joint_name]
+        min_ = end if end < min_ else min_
+        max_ = end if end > max_ else max_
+        if self.are_floats_close(end, expected_val, epsilon):
             return
 
         # Didn't make it; fail the test!
         self.assertFalse(
             True,
-            "Joint %s never reached its expected value %f" %
-            (joint_name, expected_val)
+            ("Joint %s never reached its expected value %f. Values seen " +
+             "were: start: %f, end: %f, min: %f, max: %f.") %
+            (joint_name, expected_val, start, end, min_, max_)
         )
 
 # ######################################################################
