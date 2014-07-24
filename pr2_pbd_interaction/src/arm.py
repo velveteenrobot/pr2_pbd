@@ -481,9 +481,16 @@ class Arm:
             # give us a pose close enough to the ee_pose that it's
             # usable.
             fk_pose = self.get_fk_for_joints(seed)
-            if Arm.get_distance_bw_poses(ee_pose, fk_pose) < FK_THRESHOLD:
-                joints = seed
-                rospy.logdebug('IK out of bounds, but FK close; using seed.')
+            if fk_pose is not None:
+                if Arm.get_distance_bw_poses(ee_pose, fk_pose) < FK_THRESHOLD:
+                    joints = seed
+                    rospy.logdebug(
+                        'IK out of bounds, but FK close; using seed.')
+                # We don't report it if FK isn't close as this will
+                # happen for about all relative but unreachable poses.
+            else:
+                rospy.logdebug(
+                    'FK failed and returned None for seed: ' + str(seed))
         else:
             rollover = array((array(joints) - array(seed)) / pi, int)
             joints -= ((rollover + (sign(rollover) + 1) / 2) / 2) * 2 * pi
