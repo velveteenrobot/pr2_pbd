@@ -155,7 +155,7 @@ EXECUTION_STEP_TIME = 6.0
 TRAJ_STEP_TIME = EXECUTION_STEP_TIME + ARM_MOVE_PAUSE
 
 # How close arm joints have to be to match.
-ARM_EPSILON_POSITION = 0.01
+ARM_EPSILON_POSITION = 0.02
 
 # ROS topics
 TOPIC_INT_PING = '/interaction_ping'
