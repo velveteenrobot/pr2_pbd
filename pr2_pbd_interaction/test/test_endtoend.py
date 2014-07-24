@@ -1236,16 +1236,16 @@ class TestEndToEnd(unittest.TestCase):
         # We check this generously by checking once before and after the
         # timeout. (Note that we record the start, minimum, maximum,
         # and end values for debugging.)
-        start = self.joint_positions[joint_name]
-        min_ = start
-        max_ = start
-        if self.are_floats_close(start, expected_val, epsilon):
+        start_val = self.joint_positions[joint_name]
+        min_ = start_val
+        max_ = start_val
+        if self.are_floats_close(start_val, expected_val, epsilon):
             return
 
         # Check / sleep through timeout
         timeout_dur = rospy.Duration(timeout)
-        start = rospy.Time.now()
-        while rospy.Time.now() - start < timeout_dur:
+        start_time = rospy.Time.now()
+        while rospy.Time.now() - start_time < timeout_dur:
             val = self.joint_positions[joint_name]
             min_ = val if val < min_ else min_
             max_ = val if val > max_ else max_
@@ -1265,7 +1265,7 @@ class TestEndToEnd(unittest.TestCase):
             True,
             ("Joint %s never reached its expected value %f. Values seen " +
              "were: start: %f, end: %f, min: %f, max: %f.") %
-            (joint_name, expected_val, start, end, min_, max_)
+            (joint_name, expected_val, start_val, end, min_, max_)
         )
 
 # ######################################################################

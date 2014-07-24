@@ -691,7 +691,7 @@ class World:
         rospy.loginfo(
             'STATUS: ' + self._object_action_client.get_goal_status_text())
         if self._object_action_client.get_state() != GoalStatus.SUCCEEDED:
-            rospy.logerr('Could not segment.')
+            rospy.logwarn('Could not segment.')
             return False
 
         # Do recognition
