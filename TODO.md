@@ -1,21 +1,18 @@
 # TODO
-I'm noting things here that I run into but don't want to take the time quite yet to do.
+- Fix robot speech (it's very well-known how; in other branches...) and add roslaunch param as to whether to use sounds or speech (right now it's a code option).
 
-- Remove the update loop in interaction.py (and the update(...) function in Interaction.py). It can only lead to death (race conditions).
+- Tests:
+	- Fix tests on real robot.
+	- Add (simulated) interactive marker clicks to tests, especially moving arms to a particular step (is this really possible? There's a lot of code seemingly to support it.).
+	- Check whether freezing / relaxing arms really work.
 
-- Does `ProgrammedAction.get_requested_targets(...)` ever return something? This drives a large part of the `Interaction.update(...)` loop, so would be nice to remove if not.
+- See if there's any way to access the PR2 gripper LED for object relativeness indication (while moving arms).
 
-- Trajectory business in Interaction.py should be refactored into a new class.
+- Consider changing all instances of `base_link` to `/base_link`. Is this technically more correct?
 
-- Change all instances of `base_link` to `/base_link`
+- Trajectory business in Interaction.py maybe should be refactored into a new class. So should most differences between arm targets and trajectories; they should be subclasses of a "step" class. However, this is already happening in the newer versions of this system, so it probably isn't worth doing here.
 
 - Fix the "Selected action step 5" text (should be like (2, RIGHT) or something to match the IK format. Currently just gives weird numbers so that each independent... or else the counting is broken when poses are deleted.)
-
-- Add Travis CI building
-
-- Tests
-	- Integrate with coveralls / travis / github, add badge
-	- Extend tests to exercise more code
 
 - Documentation
 	- Read about how to use [autodoc](http://sphinx-doc.org/ext/autodoc.html)

@@ -39,6 +39,9 @@ from world import World
 EXECUTION_Z_OFFSET = -0.00
 UPDATE_WAIT_SECONDS = 0.1
 BASE_LINK = 'base_link'
+# How fast to move between arm targets. NOTE(mbforbes): I'm unconvinced
+# this is actually used anywhere. See arm.py: MOVE_TO_JOINTS_VELOCITY.
+DEFAULT_VELOCITY = 0.2
 
 
 # ######################################################################
@@ -588,8 +591,8 @@ class Interaction:
             step.armTarget = ArmTarget(
                 states[Side.RIGHT],  # rArm (ArmState)
                 states[Side.LEFT],  # lArm (ArmState)
-                0.2,  # rArmVelocity (float64)
-                0.2  # lArmVelocity (float64)
+                DEFAULT_VELOCITY,  # rArmVelocity (float64)
+                DEFAULT_VELOCITY  # lArmVelocity (float64)
             )
             step.gripperAction = GripperAction(
                 GripperState(self.arms.get_gripper_state(Side.RIGHT)),
@@ -696,8 +699,8 @@ class Interaction:
             step.armTarget = ArmTarget(
                 states[Side.RIGHT],  # rArm (ArmSTate)
                 states[Side.LEFT],  # lArm (ArmState)
-                0.2,  # rArmVelocity (float64)
-                0.2  # lArmVelocity (float 64)
+                DEFAULT_VELOCITY,  # rArmVelocity (float64)
+                DEFAULT_VELOCITY  # lArmVelocity (float 64)
             )
             new_gripper_states = [
                 self.arms.get_gripper_state(Side.RIGHT),
@@ -830,7 +833,7 @@ class Interaction:
                 # Arm state is relative (to some object in the world).
                 rel_ee_poses[arm_index] = World.transform(
                     abs_ee_poses[arm_index],  # pose (Pose)
-                    'base_link',  # from_frame (str)
+                    BASE_LINK,  # from_frame (str)
                     nearest_obj.name  # to_frame (str)
                 )
                 states[arm_index] = ArmState(
