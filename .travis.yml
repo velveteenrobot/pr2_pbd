@@ -16,7 +16,7 @@ cache: apt
 # Note that this is a Travis-CI specific problem; this is not needed in
 # general.
 before_install:
-    - sudo apt-get --purge remove mongodb-10gen
+    - sudo apt-get --purge remove mongodb-10gen postgresql-9.2 postgresql-contrib-9.2 postgresql-9.3 postgresql-contrib-9.3
 
 # Commands to install dependencies
 # --------------------------------
