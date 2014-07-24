@@ -154,7 +154,6 @@ EXECUTION_STEP_TIME = 6.0
 # seconds.
 TRAJ_STEP_TIME = EXECUTION_STEP_TIME + ARM_MOVE_PAUSE
 
-
 # How close arm joints have to be to match.
 ARM_EPSILON_POSITION = 0.01
 
@@ -1157,11 +1156,8 @@ class TestEndToEnd(unittest.TestCase):
         portion = 0.0 if portion <= 0.0 else portion
         portion = 1.0 if portion >= 1.0 else portion
 
-        # We want to mirror some of the numbers across 0 for each arm.
-
         for side in SIDES:
-            # For convenience.
-            joints = self.arm_control_joints[side]
+            joints = self.arm_control_joints[side]  # For convenience.
             # We have some specific configurations for the joints:
             # - The the main shoulder pan joint (first) should be
             #       mirrored (so that arms swing out)

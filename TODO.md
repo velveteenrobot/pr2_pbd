@@ -1,5 +1,5 @@
 # TODO
-I'm noting things here that I run into but don't want to take the time quite yet to do.
+- Fix robot speech (it's very well-known how; in other branches...) and add roslaunch param as to whether to use sounds or speech (right now it's a code option).
 
 - Tests:
 	- Fix tests on real robot.
