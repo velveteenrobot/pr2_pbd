@@ -89,10 +89,8 @@ MARKER_DURATION = rospy.Duration(2)
 # How long to pause when waiting for external code, like gaze actions or
 # object segmentation, to finish before checking again.
 PAUSE_SECONDS = rospy.Duration(0.1)
-# How long we're willing to wait for object recognition. We don't use a
-# rospy Duration because the calculations were done manually (this can
-# easily be changed if it's ever important).
-RECOGNITION_TIMEOUT_SECONDS = 5.0
+# How long we're willing to wait for object recognition.
+RECOGNITION_TIMEOUT_SECONDS = rospy.Duration(5.0)
 
 
 # ######################################################################
@@ -709,7 +707,7 @@ class World:
 
         # Record the result
         if self._object_action_client.get_state() == GoalStatus.SUCCEEDED:
-            wait_time = 0.0
+            wait_time = rospy.Duration(0.0)
             while (not World.has_objects() and
                     wait_time < RECOGNITION_TIMEOUT_SECONDS):
                 rospy.sleep(PAUSE_SECONDS)

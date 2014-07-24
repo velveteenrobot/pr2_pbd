@@ -1263,8 +1263,8 @@ class TestEndToEnd(unittest.TestCase):
         # Didn't make it; fail the test!
         self.assertFalse(
             True,
-            "Joint %s never reached its expected value %f. Values seen were: " +
-            "start: %f, end: %f, min: %f, max: %f." %
+            ("Joint %s never reached its expected value %f. Values seen " +
+             "were: start: %f, end: %f, min: %f, max: %f.") %
             (joint_name, expected_val, start, end, min_, max_)
         )
 
