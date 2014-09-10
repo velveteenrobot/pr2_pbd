@@ -1,0 +1,108 @@
+<package>
+  <name>pr2_pbd_interaction</name>
+  <version>1.0.0</version>
+  <description>The interaction framework for Programing by Demonstration.</description>
+  <maintainer email="mayacakmak@github.com">Maya Cakmak</maintainer>
+  <maintainer email="mayacakmak@clearpathrobotics.com">Devon Ash</maintainer>
+
+  <license>BSD</license>
+
+  <url type="website">http://ros.org/wiki/pr2_pbd</url>
+  <!-- <url type="bugtracker"></url> -->
+
+  <author>Maya Cakmak</author>
+
+  <!-- Dependencies which this package needs to build itself. -->
+  <buildtool_depend>catkin</buildtool_depend>
+
+  <!-- Dependencies needed to compile this package. -->
+  <build_depend>actionlib</build_depend>
+  <build_depend>arm_navigation_msgs</build_depend>
+  <build_depend>geometry_msgs</build_depend>
+  <build_depend>interactive_markers</build_depend>
+  <build_depend>kinematics_msgs</build_depend>
+  <build_depend>object_manipulation_msgs</build_depend>
+  <build_depend>pr2_arm_kinematics</build_depend>
+  <build_depend>pr2_controllers_msgs</build_depend>
+  <build_depend>pr2_gazebo</build_depend>
+  <build_depend>pr2_gripper_sensor_msgs</build_depend>
+  <build_depend>pr2_interactive_manipulation</build_depend>
+  <build_depend>pr2_interactive_manipulation_frontend</build_depend>
+  <build_depend>rviz</build_depend>
+  <build_depend>pr2_interactive_object_detection</build_depend>
+  <build_depend>pr2_mechanism_controllers</build_depend>
+  <build_depend>pr2_mechanism_msgs</build_depend>
+  <build_depend>pr2_pbd_speech_recognition</build_depend>
+  <build_depend>pr2_social_gaze</build_depend>
+  <build_depend>rospy</build_depend>
+  <build_depend>rostest</build_depend>
+  <build_depend>rqt_gui</build_depend>
+  <build_depend>sound_play</build_depend>
+  <build_depend>std_msgs</build_depend>
+  <build_depend>tabletop_collision_map_processing</build_depend>
+  <build_depend>tf</build_depend>
+  <build_depend>tf_throttle</build_depend>
+  <build_depend>trajectory_filter_server</build_depend>
+  <build_depend>visualization_msgs</build_depend>
+
+  <!-- Dependencies needed after this package is compiled. -->
+  <run_depend>actionlib</run_depend>
+  <run_depend>arm_navigation_msgs</run_depend>
+  <run_depend>geometry_msgs</run_depend>
+  <run_depend>interactive_markers</run_depend>
+  <run_depend>kinematics_msgs</run_depend>
+  <run_depend>object_manipulation_msgs</run_depend>
+  <run_depend>pr2_arm_kinematics</run_depend>
+  <run_depend>pr2_controllers_msgs</run_depend>
+  <run_depend>pr2_gazebo</run_depend>
+  <run_depend>pr2_gripper_sensor_msgs</run_depend>
+  <run_depend>pr2_interactive_manipulation</run_depend>
+  <run_depend>pr2_interactive_manipulation_frontend</run_depend>
+  <run_depend>rviz</run_depend>
+  <run_depend>pr2_interactive_object_detection</run_depend>
+  <run_depend>pr2_mechanism_controllers</run_depend>
+  <run_depend>pr2_mechanism_msgs</run_depend>
+  <run_depend>pr2_pbd_speech_recognition</run_depend>
+  <run_depend>pr2_social_gaze</run_depend>
+  <run_depend>rospy</run_depend>
+  <run_depend>rostest</run_depend>
+  <run_depend>rqt_gui</run_depend>
+  <run_depend>sound_play</run_depend>
+  <run_depend>std_msgs</run_depend>
+  <run_depend>tabletop_collision_map_processing</run_depend>
+  <run_depend>tf</run_depend>
+  <run_depend>tf_throttle</run_depend>
+  <run_depend>trajectory_filter_server</run_depend>
+  <run_depend>visualization_msgs</run_depend>
+
+  <!-- Dependencies needed only for running tests. -->
+  <!-- <test_depend>actionlib</test_depend> -->
+  <!-- <test_depend>arm_navigation_msgs</test_depend> -->
+  <!-- <test_depend>geometry_msgs</test_depend> -->
+  <!-- <test_depend>interactive_markers</test_depend> -->
+  <!-- <test_depend>kinematics_msgs</test_depend> -->
+  <!-- <test_depend>object_manipulation_msgs</test_depend> -->
+  <!-- <test_depend>pr2_arm_kinematics</test_depend> -->
+  <!-- <test_depend>pr2_controllers_msgs</test_depend> -->
+  <!-- <test_depend>pr2_gazebo</test_depend> -->
+  <!-- <test_depend>pr2_gripper_sensor_msgs</test_depend> -->
+  <!-- <test_depend>pr2_interactive_manipulation</test_depend> -->
+  <!-- <test_depend>pr2_interactive_manipulation_frontend</test_depend> -->
+  <!-- <test_depend>rviz</test_depend> -->
+  <!-- <test_depend>pr2_interactive_object_detection</test_depend> -->
+  <!-- <test_depend>pr2_mechanism_controllers</test_depend> -->
+  <!-- <test_depend>pr2_mechanism_msgs</test_depend> -->
+  <!-- <test_depend>pr2_pbd_speech_recognition</test_depend> -->
+  <!-- <test_depend>pr2_social_gaze</test_depend> -->
+  <!-- <test_depend>rospy</test_depend> -->
+  <!-- <test_depend>rostest</test_depend> -->
+  <!-- <test_depend>rqt_gui</test_depend> -->
+  <!-- <test_depend>sound_play</test_depend> -->
+  <!-- <test_depend>std_msgs</test_depend> -->
+  <!-- <test_depend>tabletop_collision_map_processing</test_depend> -->
+  <!-- <test_depend>tf</test_depend> -->
+  <!-- <test_depend>tf_throttle</test_depend> -->
+  <!-- <test_depend>trajectory_filter_server</test_depend> -->
+  <!-- <test_depend>visualization_msgs</test_depend> -->
+
+</package>
