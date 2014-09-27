@@ -23,7 +23,7 @@ before_install:
 install:
 # Update package list and install new versions.
     - sudo apt-get update
-    - sudo apt-get upgrade --fix-missing
+    - yes | sudo apt-get -y upgrade --fix-missing
 # First, move code to correct place. Also Travis-CI specific.
     - mkdir -p ~/rosbuild_ws
     - cd ..; mv pr2_pbd ~/rosbuild_ws/
