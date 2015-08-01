@@ -5,39 +5,27 @@
 # ######################################################################
 
 # Core ROS imports come first.
-import roslib
-roslib.load_manifest('pr2_pbd_interaction')
-import rospy
-
-# System builtins
 import threading
-
-# 3rd party
+import rospy
+import tf
 from numpy import array, sign, pi, dot
 from numpy.linalg import norm
-
-# ROS builtins
-import tf
-from actionlib import SimpleActionClient
+from trajectory_msgs.msg import JointTrajectoryPoint
+from trajectory_msgs.msg import JointTrajectory
 from actionlib_msgs.msg import GoalStatus
-from geometry_msgs.msg import Quaternion, Point, Pose
+from actionlib import SimpleActionClient
+from pr2_mechanism_msgs.srv import SwitchController
+from pr2_mechanism_msgs.srv import SwitchControllerRequest
+from pr2_controllers_msgs.msg import JointTrajectoryAction
+from pr2_controllers_msgs.msg import JointTrajectoryGoal
+from pr2_controllers_msgs.msg import Pr2GripperCommandAction
+from pr2_controllers_msgs.msg import Pr2GripperCommandGoal
 from sensor_msgs.msg import JointState
-
-# ROS 3rd party
-from arm_navigation_msgs.srv import FilterJointTrajectory
-from kinematics_msgs.srv import (
-    GetKinematicSolverInfo, GetPositionIK, GetPositionIKRequest, GetPositionFK,
-    GetPositionFKRequest)
-from pr2_mechanism_msgs.srv import SwitchController, SwitchControllerRequest
-from pr2_controllers_msgs.msg import (
-    JointTrajectoryAction, JointTrajectoryGoal, Pr2GripperCommandAction,
-    Pr2GripperCommandGoal)
-from trajectory_msgs.msg import JointTrajectoryPoint, JointTrajectory
-
-# Local
+from geometry_msgs.msg import Quaternion, Point, Pose
 from pr2_pbd_interaction.msg import GripperState, ArmMode, Side
-from world import World
-
+from pr2_pbd_interaction.world import World
+import moveit_commander
+from moveit_msgs.srv import GetPositionIK, GetPositionIKRequest
 
 # ######################################################################
 # Module level constants
@@ -198,23 +186,12 @@ class Arm:
         self.ik_limits = None
         self._setup_ik()
 
-        # Set up Forward Kinematics
-        self.fk_srv = None
-        self.fk_request = None
-        self._setup_fk()
-
         # Set up gripper controller.
         gripper_name = side_prefix + ACTION_GRIPPER_CONTROLLER_POSTFIX
         self.gripper_client = SimpleActionClient(
             gripper_name, Pr2GripperCommandAction)
         self.gripper_client.wait_for_server()
         rospy.loginfo('Got response form gripper server for ' + side + ' arm.')
-
-        # Set up trajectory filtering service.
-        rospy.wait_for_service(SERVICE_TRAJ_FILTER)
-        self.filter_service = rospy.ServiceProxy(
-            SERVICE_TRAJ_FILTER, FilterJointTrajectory)
-        rospy.loginfo('Filtering service has responded for ' + side + ' arm.')
 
         self.lock = threading.Lock()
         rospy.Subscriber(TOPIC_JOINT_STATES, JointState, self._joint_states_cb)
@@ -690,60 +667,27 @@ class Arm:
 
     def _setup_ik(self):
         '''Sets up services for inverse kinematics.'''
-        side = self._side()
-
-        # Get IK info service.
-        ik_info_srv_name = PR2_SERVICE_PREFIX + side + SERVICE_IK_INFO_POSTFIX
-        rospy.wait_for_service(ik_info_srv_name)
-        ik_info_srv = rospy.ServiceProxy(
-            ik_info_srv_name, GetKinematicSolverInfo)
-        solver_info = ik_info_srv()
-        rospy.loginfo('IK info service has responded for ' + side + ' arm.')
-
-        # Get IK service.
-        ik_srv_name = PR2_SERVICE_PREFIX + side + SERVICE_IK_POSTFIX
+        ik_srv_name = '/compute_ik'
+        rospy.loginfo('IK info service has responded for '
+                      + self._side() + ' arm.')
         rospy.wait_for_service(ik_srv_name)
-        self.ik_srv = rospy.ServiceProxy(
-            ik_srv_name, GetPositionIK, persistent=True)
-        rospy.loginfo('IK service has responded for ' + side + ' arm.')
+        self.ik_srv = rospy.ServiceProxy(ik_srv_name,
+                                         GetPositionIK, persistent=True)
+        rospy.loginfo('IK service has responded for ' + self._side() + ' arm.')
 
-        # Set up common parts of an IK request.
+        robot = moveit_commander.RobotCommander()
+        # Set up common parts of an IK request
         self.ik_request = GetPositionIKRequest()
-        self.ik_request.timeout = rospy.Duration(IK_REQUEST_TIMEOUT)
-        self.ik_joints = solver_info.kinematic_solver_info.joint_names
-        self.ik_limits = solver_info.kinematic_solver_info.limits
-        ik_links = solver_info.kinematic_solver_info.link_names
-
         request = self.ik_request.ik_request
-        request.ik_link_name = ik_links[0]
-        request.pose_stamped.header.frame_id = BASE_LINK
-        request.ik_seed_state.joint_state.name = self.ik_joints
-        request.ik_seed_state.joint_state.position = [0] * len(self.ik_joints)
-
-    def _setup_fk(self):
-        '''Sets up services for forward kinematics.'''
-        side = self._side()
-
-        # Get FK info service.
-        fk_info_srv_name = PR2_SERVICE_PREFIX + side + SERVICE_FK_INFO_POSTFIX
-        rospy.wait_for_service(fk_info_srv_name)
-        fk_info_srv = rospy.ServiceProxy(
-            fk_info_srv_name, GetKinematicSolverInfo)
-        ks_info = fk_info_srv().kinematic_solver_info
-        rospy.loginfo('FK info service has responded for ' + side + ' arm.')
-
-        # Get FK service.
-        fk_srv_name = PR2_SERVICE_PREFIX + side + SERVICE_FK_POSTFIX
-        rospy.wait_for_service(fk_srv_name)
-        self.fk_srv = rospy.ServiceProxy(
-            fk_srv_name, GetPositionFK, persistent=True)
-        rospy.loginfo('FK service has responded for ' + side + ' arm.')
-
-        # Set up common parts of an FK request.
-        self.fk_request = GetPositionFKRequest()
-        self.fk_request.header.frame_id = BASE_LINK
-        self.fk_request.fk_link_names = ks_info.link_names
-        self.fk_request.robot_state.joint_state.name = ks_info.joint_names
+        request.timeout = rospy.Duration(4)
+        group_name = self._side() + '_arm'
+        request.group_name = group_name
+        self.ik_joints = self.joint_names
+        self.ik_limits = [robot.get_joint(x).bounds() for x in self.ik_joints]
+        request.ik_link_name = self.ee_name
+        request.pose_stamped.header.frame_id = 'base_link'
+        request.robot_state.joint_state.name = self.ik_joints
+        request.robot_state.joint_state.position = [0] * len(self.joint_names)
 
     def _side(self):
         '''Returns the string 'right' or 'left' depending on arm side.

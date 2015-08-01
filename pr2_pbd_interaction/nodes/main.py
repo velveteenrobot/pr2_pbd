@@ -3,29 +3,28 @@
 '''This runs the PbD system (i.e. the backend).'''
 
 # Core ROS imports come first.
-import roslib
-roslib.load_manifest('pr2_pbd_interaction')
 import rospy
+import signal
+import pr2_pbd_interaction
+from pr2_pbd_interaction.interaction import Interaction
+
+def signal_handler(signal, frame):
+    # The following makes sure the state of a user study is saved, so that it can be recovered
+    global interaction
+    interaction.save_experiment_state()
+    print 'Program Terminated!!'
+    sys.exit(0)
+
+signal.signal(signal.SIGINT, signal_handler)
+signal.signal(signal.SIGQUIT, signal_handler)
+
 
 if __name__ == '__main__':
     # Check whether we want code coverage, and start if so.
-    use_coverage = rospy.get_param(
-        '/pr2_pbd_interaction/coverage', default=False)
-    if use_coverage:
-        from coverage import coverage
-        cov = coverage(
-            include="*/pr2_pbd_interaction/src/*.py",  # source files
-            omit="*/src/pr2_pbd_interaction/*"  # generated files
-        )
-        cov.start()
+    global interaction
 
     # Run the system
-    import interaction
-    interaction_ = interaction.Interaction()
+    interaction_ = Interaction()
     rospy.spin()
-
-    # System execution finished; generate coverage report if enabled.
-    if use_coverage:
-        cov.stop()
-        cov.save()
-        cov.html_report(title='PR2 PbD code coverage')
+    #while(not rospy.is_shutdown()):
+    #    interaction.update()

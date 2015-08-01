@@ -4,7 +4,7 @@ cmake_minimum_required(VERSION 2.8.3)
 project(pr2_pbd_gui)
 # Load catkin and all dependencies required for this package
 # TODO: remove all from COMPONENTS that are not catkin packages.
-find_package(catkin REQUIRED COMPONENTS rospy rqt_gui rqt_gui_py pr2_pbd_speech_recognition pr2_pbd_interaction sound_play)
+find_package(catkin REQUIRED COMPONENTS rospy rqt_gui rqt_gui_py sound_play)
 
 # include_directories(include ${Boost_INCLUDE_DIR} ${catkin_INCLUDE_DIRS})
 # CATKIN_MIGRATION: removed during catkin migration

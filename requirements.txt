@@ -1,3 +1,0 @@
-coverage
-python-coveralls
-pep8

@@ -18,8 +18,6 @@ from pr2_mechanism_msgs.msg import *
 from pr2_mechanism_msgs.srv import *
 from pr2_controllers_msgs.msg import *
 from trajectory_msgs.msg import *
-from kinematics_msgs import *
-from kinematics_msgs.srv import *
 from sensor_msgs.msg import JointState
 from actionlib import SimpleActionClient
 from pr2_controllers_msgs.msg import PointHeadAction, PointHeadGoal

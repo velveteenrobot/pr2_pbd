@@ -4,43 +4,27 @@
 # Imports
 # ######################################################################
 
-# Core ROS imports come first.
-import roslib
-roslib.load_manifest('pr2_pbd_interaction')
-import rospy
-
-# System builtins
-import threading
 import time
-
-# 3rd party
-from numpy import array
+import threading
 from numpy.linalg import norm
-
-# ROS builtins
-import actionlib
-from actionlib_msgs.msg import GoalStatus
-from geometry_msgs.msg import Quaternion, Vector3, Point, Pose, PoseStamped
-from std_msgs.msg import ColorRGBA, Header
+from numpy import array
+import rospy
 import tf
 from tf import TransformListener, TransformBroadcaster
-
-# ROS 3rd party
-from interactive_markers.interactive_marker_server import (
-    InteractiveMarkerServer)
+from geometry_msgs.msg import Quaternion, Vector3, Point, Pose, PoseStamped
+from std_msgs.msg import ColorRGBA, Header
+from visualization_msgs.msg import Marker, InteractiveMarker
+from visualization_msgs.msg import InteractiveMarkerControl
+from visualization_msgs.msg import InteractiveMarkerFeedback
+from interactive_markers.interactive_marker_server import InteractiveMarkerServer
 from interactive_markers.menu_handler import MenuHandler
-from manipulation_msgs.msg import GraspableObjectList
-from object_manipulation_msgs.srv import FindClusterBoundingBox
-from pr2_interactive_object_detection.msg import (
-    UserCommandAction, UserCommandGoal)
-from visualization_msgs.msg import (
-    Marker, InteractiveMarker, InteractiveMarkerControl,
-    InteractiveMarkerFeedback)
-
-# Local
+from actionlib_msgs.msg import GoalStatus
+import actionlib
+from math import pi, sin, cos
+# from ar_track_alvar.msg import AlvarMarkers
+from tabletop_object_detector.srv import TabletopSegmentation
 from pr2_pbd_interaction.msg import Object, ArmState
-from pr2_social_gaze.msg import GazeGoal
-from response import Response
+from pr2_pbd_interaction import response
 
 
 # ######################################################################

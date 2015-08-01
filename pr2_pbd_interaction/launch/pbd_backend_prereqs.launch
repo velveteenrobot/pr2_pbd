@@ -10,30 +10,19 @@
 	pbd_backend in general) work on both the real and simulated robot.
 	-->
 
+    <arg name="kinect_frame_prefix" default="/head_mount_kinect" />
+    <arg name="kinect_camera_name" default="head_mount_kinect" />
+    
 	<!-- These arguments can be passed in. -->
 	<arg name="sim" default="false" />
-
-	<!-- This runs the interactive manipulation. -->
-	<node pkg="pr2_arm_kinematics" type="pr2_arm_kinematics_node" name="pr2_left_arm_kinematics_simple" output="screen">
-		<param name="tip_name" value="l_wrist_roll_link" />
-		<param name="root_name" value="torso_lift_link" />
-		<param name="maxIterations" value="10000" />
-	</node>
-	<node pkg="pr2_arm_kinematics" type="pr2_arm_kinematics_node" name="pr2_right_arm_kinematics_simple" output="screen">
-		<param name="tip_name" value="r_wrist_roll_link" />
-		<param name="root_name" value="torso_lift_link" />
-		<param name="maxIterations" value="10000" />
-	</node>
-	<include file="$(find pr2_interactive_manipulation)/launch/pr2_interactive_manipulation_robot.launch" >
-		<arg name="sim" value="$(arg sim)" />
-	</include>
 
 	<!-- This makes the robot look around appropriately -->
 	<include file="$(find pr2_social_gaze)/launch/gaze.launch"/>
 
-	<!-- This is needed for filling in the velocity of replayed trajectories -->
-	<node pkg="trajectory_filter_server" name="trajectory_filter" type="trajectory_filter_server" output="screen">
-		<rosparam command="load" file="$(find trajectory_filter_server)/config/joint_limits.yaml"/>
-		<rosparam command="load" file="$(find pr2_pbd_interaction)/config/filters.yaml"/>
-	</node>
+  	<include file="$(find pr2_moveit_config)/launch/move_group.launch" />
+
+	<include file="$(find tabletop_object_detector)/launch/tabletop_segmentation.launch">
+	    <arg name="tabletop_segmentation_points_in" value="$(arg kinect_camera_name)/depth/points" />
+	</include>
+
 </launch>
