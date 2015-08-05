@@ -36,9 +36,6 @@ PARAM_DATA_ROOT = '/pr2_pbd_interaction/dataRoot'
 PARAM_EXP_NO = '/pr2_pbd_interaction/experimentNumber'
 PARAM_IS_RELOAD = '/pr2_pbd_interaction/isReload'
 PARAM_DATA_DIR = 'data_directory'
-TOPIC_EXP_STATE = 'experiment_state'
-SERVICE_GET_EXP_STATE = 'get_experiment_state'
-
 
 # ######################################################################
 # Classes
@@ -81,9 +78,9 @@ class Session:
         # Create state publisher to broadcast state as well as service
         # to query it.
         self._state_publisher = rospy.Publisher(
-            TOPIC_EXP_STATE, ExperimentState)
+            'experiment_state', ExperimentState)
         rospy.Service(
-            SERVICE_GET_EXP_STATE,
+            'get_experiment_state',
             GetExperimentState,
             self._get_experiment_state_cb
         )
