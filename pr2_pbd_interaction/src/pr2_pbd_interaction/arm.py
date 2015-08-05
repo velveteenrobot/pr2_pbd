@@ -98,27 +98,12 @@ ARM_JOINTS = [
     '_wrist_roll_joint'
 ]
 
-# Controller postfix for holding / releaseing arm.
-ARM_CONTROLLER_POSTFIX = '_arm_controller'
-
 # IK settings
 IK_REQUEST_TIMEOUT = 4.0  # seconds
 
 # PR2
 PR2_SERVICE_PREFIX = 'pr2_'
 BASE_LINK = 'base_link'
-
-# ROS topics/services/actions
-TOPIC_JOINT_STATES = 'joint_states'
-SERVICE_IK_INFO_POSTFIX = '_arm_kinematics_simple/get_ik_solver_info'
-SERVICE_IK_POSTFIX = '_arm_kinematics_simple/get_ik'
-SERVICE_FK_INFO_POSTFIX = '_arm_kinematics_simple/get_fk_solver_info'
-SERVICE_FK_POSTFIX = '_arm_kinematics_simple/get_fk'
-SERVICE_TRAJ_FILTER = '/trajectory_filter/filter_trajectory'
-SERVICE_SWITCH_CONTROLLER = 'pr2_controller_manager/switch_controller'
-ACTION_GRIPPER_CONTROLLER_POSTFIX = '_gripper_controller/gripper_action'
-ACTION_TRAJECTORY_CONTROLLER_POSTFIX = (
-    '_arm_controller/joint_trajectory_action')
 
 
 # ######################################################################
@@ -163,7 +148,10 @@ class Arm:
 
         rospy.loginfo('Initializing ' + side + ' arm.')
 
-        switch_controller = SERVICE_SWITCH_CONTROLLER
+        self.lock = threading.Lock()
+        rospy.Subscriber('joint_states', JointState, self._joint_states_cb)
+
+        switch_controller = 'pr2_controller_manager/switch_controller'
         rospy.wait_for_service(switch_controller)
         self.switch_service = rospy.ServiceProxy(
             switch_controller, SwitchController)
@@ -172,7 +160,7 @@ class Arm:
 
         # Create a trajectory action client
         traj_controller_name = (
-            side_prefix + ACTION_TRAJECTORY_CONTROLLER_POSTFIX)
+            side_prefix + '_arm_controller/joint_trajectory_action')
         self.traj_action_client = SimpleActionClient(
             traj_controller_name, JointTrajectoryAction)
         self.traj_action_client.wait_for_server()
@@ -187,14 +175,11 @@ class Arm:
         self._setup_ik()
 
         # Set up gripper controller.
-        gripper_name = side_prefix + ACTION_GRIPPER_CONTROLLER_POSTFIX
+        gripper_name = side_prefix + '_gripper_controller/gripper_action'
         self.gripper_client = SimpleActionClient(
             gripper_name, Pr2GripperCommandAction)
         self.gripper_client.wait_for_server()
         rospy.loginfo('Got response form gripper server for ' + side + ' arm.')
-
-        self.lock = threading.Lock()
-        rospy.Subscriber(TOPIC_JOINT_STATES, JointState, self._joint_states_cb)
 
     # ##################################################################
     # Static methods: Public (API)
@@ -591,7 +576,7 @@ class Arm:
             mode (int): ArmMode.HOLD or ArmMode.RELEASE
         '''
         side = self._side()
-        controller_name = self._side_prefix() + ARM_CONTROLLER_POSTFIX
+        controller_name = self._side_prefix() + '_arm_controller'
         if mode == ArmMode.RELEASE:
             start_controllers = []
             stop_controllers = [controller_name]

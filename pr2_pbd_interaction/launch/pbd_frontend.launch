@@ -7,7 +7,7 @@
 
 	<!-- This is the interactive manipulation stuff for visualization
 	(this will run RVIZ). -->
-	<include file="$(find pr2_pbd_interaction)/launch/pr2_interactive_manipulation_desktop.launch" />
+	<!--<include file="$(find pr2_pbd_interaction)/launch/pr2_interactive_manipulation_desktop.launch" />-->
 
 	<!-- This adds speech generation. -->
 	<node name="soundplay_node" pkg="sound_play" type="soundplay_node.py"/>
