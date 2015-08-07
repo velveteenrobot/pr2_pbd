@@ -315,7 +315,7 @@ class Arms:
                 will not move.
         '''
         # Get readable strings representing the referred arm.
-        arm_name_lower = Arms.arms[arm_index].get_side_str()
+        arm_name_lower = Arms.arms[arm_index]._side()
         arm_name_cap = arm_name_lower.capitalize()
 
         # Check whether arm will move at all.
@@ -446,7 +446,7 @@ class Arms:
         thread.start()
 
         # Log
-        side_str = Arms.arms[arm_index].get_side_str()
+        side_str = Arms.arms[arm_index]._side()
         rospy.loginfo('Started thread to move ' + side_str + ' arm.')
 
     def move_to_pose(self, arm_state, arm_index):
