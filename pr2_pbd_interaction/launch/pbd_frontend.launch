@@ -14,4 +14,13 @@
 
 	<!-- This adds speech recognition (using pocketsphinx). -->
 	<include file="$(find pr2_pbd_speech_recognition)/launch/command_recognition.launch"/>
+
+    <!-- rviz -->
+
+    <node name="$(anon rviz-1)" pkg="rviz" type="rviz" respawn="false"
+        args="-d $(find pr2_pbd_interaction)/config/pr2_pbd.rviz"
+        output="screen">
+        <rosparam command="load" file="$(find pr2_moveit_config)/config/kinematics.yaml"/>
+    </node>
+
 </launch>

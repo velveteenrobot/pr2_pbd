@@ -24,7 +24,8 @@ from math import pi, sin, cos
 # from ar_track_alvar.msg import AlvarMarkers
 from tabletop_object_detector.srv import TabletopSegmentation
 from pr2_pbd_interaction.msg import Object, ArmState
-from pr2_pbd_interaction import response
+from pr2_pbd_interaction.response import Response
+from pr2_social_gaze.msg import GazeGoal
 
 
 # ######################################################################
@@ -639,6 +640,24 @@ class World:
         except rospy.ServiceException, e:
             print "Call to segmentation service failed: %s" % e
             return False
+
+    @staticmethod
+    def get_tf_pose(tf_name, ref_frame='base_link'):
+        ''' Returns end effector pose for the arm'''
+        try:
+            time = World.tf_listener.getLatestCommonTime(ref_frame,
+                                                         tf_name)
+            (position, orientation) = World.tf_listener.lookupTransform(
+                                                ref_frame, tf_name, time)
+            tf_pose = Pose()
+            tf_pose.position = Point(position[0], position[1], position[2])
+            tf_pose.orientation = Quaternion(orientation[0], orientation[1],
+                                             orientation[2], orientation[3])
+            return tf_pose
+        except (tf.LookupException, tf.ConnectivityException,
+                tf.ExtrapolationException) as e:
+            rospy.logwarn('Something wrong with transform request: ' + str(e))
+            return None
 
     def clear_all_objects(self):
         '''Removes all objects from the world.'''

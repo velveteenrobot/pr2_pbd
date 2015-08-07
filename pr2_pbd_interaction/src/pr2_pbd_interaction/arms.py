@@ -218,7 +218,7 @@ class Arms:
         return True
 
     @staticmethod
-    def get_joint_positions(arm_index):
+    def get_joint_state(arm_index):
         '''Get joint positions.
 
         Args:
@@ -228,7 +228,7 @@ class Arms:
             [float]: Array of seven floats, the positions of all arm
                 joints of the arm_index arm.
         '''
-        return Arms.arms[arm_index].get_joint_positions()
+        return Arms.arms[arm_index].get_joint_state()
 
     @staticmethod
     def get_gripper_state(arm_index):
