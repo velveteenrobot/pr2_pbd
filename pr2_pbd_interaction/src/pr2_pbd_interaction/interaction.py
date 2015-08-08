@@ -69,7 +69,7 @@ class Interaction:
 
         # Create main components.
         self.world = World()
-        self.arms = Arms(world.tf_listener)
+        self.arms = Arms(World.tf_listener)
         self.session = Session(object_list=self.world.get_frame_list())
 
         # ROS publishers and subscribers.

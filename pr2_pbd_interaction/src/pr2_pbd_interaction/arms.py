@@ -17,8 +17,8 @@ import time
 from geometry_msgs.msg import Pose, Point
 
 # Local
-from pr2_arm_comtrol.arm import Arm
-from pr2_arm_comtrol.msg import ArmMode, GripperState, Side
+from pr2_arm_control.arm import Arm
+from pr2_arm_control.msg import ArmMode, GripperState, Side
 from pr2_pbd_interaction.msg import ArmState, ActionStep, ExecutionStatus
 from pr2_social_gaze.msg import GazeGoal
 from response import Response
