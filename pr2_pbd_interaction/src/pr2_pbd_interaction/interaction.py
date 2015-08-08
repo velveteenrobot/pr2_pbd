@@ -19,12 +19,12 @@ import threading
 from visualization_msgs.msg import MarkerArray
 
 # Local
-from arm import ArmMode
-from arms import Arms
+from pr2_arm_control.msg import ArmMode, Side, GripperState
+from pr2_pbd_interaction.arms import Arms
 from session import Session
 from pr2_pbd_interaction.msg import (
-    ArmState, GripperState, ActionStep, ArmTarget, Object, GripperAction,
-    ArmTrajectory, ExecutionStatus, GuiCommand, Side)
+    ArmState, ActionStep, ArmTarget, Object, GripperAction,
+    ArmTrajectory, ExecutionStatus, GuiCommand)
 from pr2_pbd_interaction.srv import Ping, PingResponse
 from pr2_pbd_speech_recognition.msg import Command
 from pr2_social_gaze.msg import GazeGoal
@@ -68,8 +68,8 @@ class Interaction:
         rospy.init_node('pr2_pbd_interaction', anonymous=True)
 
         # Create main components.
-        self.arms = Arms()
         self.world = World()
+        self.arms = Arms(world.tf_listener)
         self.session = Session(object_list=self.world.get_frame_list())
 
         # ROS publishers and subscribers.

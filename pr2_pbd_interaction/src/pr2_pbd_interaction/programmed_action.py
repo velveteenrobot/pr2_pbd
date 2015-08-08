@@ -21,9 +21,10 @@ from visualization_msgs.msg import MarkerArray, Marker
 
 # Local
 from action_step_marker import ActionStepMarker
+from pr2_arm_control.msg import Side, GripperState
 from pr2_pbd_interaction.msg import (
-    ArmState, ActionStepSequence, ActionStep, ArmTarget, Side,
-    GripperAction, ArmTrajectory, GripperState)
+    ArmState, ActionStepSequence, ActionStep, ArmTarget,
+    GripperAction, ArmTrajectory)
 
 
 # ######################################################################

@@ -17,9 +17,9 @@ import time
 from geometry_msgs.msg import Pose, Point
 
 # Local
-from arm import Arm, ArmMode
-from pr2_pbd_interaction.msg import (
-    ArmState, GripperState, ActionStep, Side, ExecutionStatus)
+from pr2_arm_comtrol.arm import Arm
+from pr2_arm_comtrol.msg import ArmMode, GripperState, Side
+from pr2_pbd_interaction.msg import ArmState, ActionStep, ExecutionStatus
 from pr2_social_gaze.msg import GazeGoal
 from response import Response
 from world import World
@@ -60,10 +60,10 @@ class Arms:
     '''Class for things related to moving arms.'''
     arms = [None, None]
 
-    def __init__(self):
+    def __init__(self, tf_listener):
         # Create two arms; initialize their individual state.
         for side in SIDES:
-            arm = Arm(side)
+            arm = Arm(side, tf_listener)
             Arms.arms[side] = arm
             arm.set_mode(ArmMode.HOLD)
             arm.check_gripper_state()

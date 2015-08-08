@@ -1,7 +1,7 @@
 # Catkin User Guide: http://www.ros.org/doc/groovy/api/catkin/html/user_guide/user_guide.html
 # Catkin CMake Standard: http://www.ros.org/doc/groovy/api/catkin/html/user_guide/standards.html
 cmake_minimum_required(VERSION 2.8.3)
-project(pr2_pbd_interaction)
+project(pr2_arm_control)
 # Load catkin and all dependencies required for this package
 # TODO: remove all from COMPONENTS that are not catkin packages.
 find_package(catkin REQUIRED COMPONENTS
@@ -20,30 +20,21 @@ find_package(catkin REQUIRED COMPONENTS
 ## Uncomment this if the package has a setup.py. This macro ensures
 ## modules and global scripts declared therein get installed
 ## See http://ros.org/doc/api/catkin/html/user_guide/setup_dot_py.html
-catkin_python_setup()
+## catkin_python_setup()
 
 # Generate messages and services
 add_message_files(
   FILES
-  ActionStep.msg
-  ArmState.msg
-  Condition.msg
-  GripperAction.msg
-  Object.msg
-  ActionStepSequence.msg
-  ArmTarget.msg
-  ExecutionStatus.msg
-  RobotSound.msg
-  ArmTrajectory.msg
-  ExperimentState.msg
-  GuiCommand.msg
+  GripperState.msg
+  ArmMode.msg
+  Side.msg
 )
 
-add_service_files(
-  FILES
-  GetExperimentState.srv
-  Ping.srv
-)
+#add_service_files(
+#  FILES
+#  GetExperimentState.srv
+#  Ping.srv
+#)
 
 ## Generate added messages and services with any dependencies listed here
 generate_messages(
@@ -51,14 +42,13 @@ generate_messages(
   std_msgs
   geometry_msgs
   tf
-  pr2_arm_control
 )
 
 # catkin_package parameters: http://ros.org/doc/groovy/api/catkin/html/dev_guide/generated_cmake_api.html#catkin-package
 # TODO: fill in what other packages will need to use this package
 catkin_package(
-  INCLUDE_DIRS src/pr2_pbd_interaction
-  LIBRARIES pr2_pbd_interaction
+  INCLUDE_DIRS src/pr2_arm_control
+  LIBRARIES pr2_arm_control
   CATKIN_DEPENDS rospy
   DEPENDS system_lib
 )
@@ -106,7 +96,7 @@ include_directories(
 # )
 
 ## Mark executables and/or libraries for installation
-# install(TARGETS pr2_pbd_interaction pr2_pbd_node
+# install(TARGETS pr2_arm_control pr2_pbd_node
 #   ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
 #   LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
 #   RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}

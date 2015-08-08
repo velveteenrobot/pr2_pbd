@@ -1,9 +1,6 @@
 ''' Interface for controlling one arm '''
 import moveit_commander
 from moveit_msgs.srv import GetPositionIK, GetPositionIKRequest
-import roslib
-roslib.load_manifest('pr2_pbd_interaction')
-
 import threading
 import rospy
 import tf
@@ -20,8 +17,7 @@ from pr2_controllers_msgs.msg import Pr2GripperCommandAction
 from pr2_controllers_msgs.msg import Pr2GripperCommandGoal
 from sensor_msgs.msg import JointState
 from geometry_msgs.msg import Quaternion, Point, Pose
-from pr2_pbd_interaction.msg import GripperState, ArmMode, Side
-from pr2_pbd_interaction.world import World
+from pr2_arm_control.msg import GripperState, ArmMode, Side
 
 
 class Arm:
@@ -29,8 +25,9 @@ class Arm:
 
     _is_autorelease_on = False
 
-    def __init__(self, arm_index):
+    def __init__(self, arm_index, tf_listener):
         self.arm_index = arm_index
+        self.tf_listener = tf_listener
 
         self.arm_mode = ArmMode.HOLD
         self.gripper_state = None
@@ -55,10 +52,6 @@ class Arm:
 
         self.lock = threading.Lock()
         rospy.Subscriber('joint_states', JointState, self.joint_states_cb)
-        #
-        # rospy.loginfo('Initializing ' + self._side() + ' arm.')
-        # rospy.loginfo("Initializing moveit")
-        # self.arm_commander = moveit_commander.MoveGroupCommander(self._side() + "_arm")
 
         switch_controller = 'pr2_controller_manager/switch_controller'
         rospy.wait_for_service(switch_controller)
@@ -90,14 +83,6 @@ class Arm:
         self.gripper_client.wait_for_server()
         rospy.loginfo('Got response form gripper server for '
                       + self._side() + ' arm.')
-
-        # filter_srv_name = '/trajectory_filter/filter_trajectory'
-        # rospy.wait_for_service(filter_srv_name)
-        # self.filter_service = rospy.ServiceProxy(filter_srv_name,
-        #                                          FilterJointTrajectory)
-        # rospy.loginfo('Filtering service has responded for ' +
-        #               self._side() + ' arm.')
-
 
     def _setup_ik(self):
         '''Sets up services for inverse kinematics'''
@@ -137,7 +122,20 @@ class Arm:
 
     def get_ee_state(self, ref_frame='base_link'):
         ''' Returns end effector pose for the arm'''
-        return World.get_tf_pose(self.ee_name)
+        try:
+            time = self.tf_listener.getLatestCommonTime(ref_frame,
+                                                         self.ee_name)
+            (position, orientation) = self.tf_listener.lookupTransform(
+                                                ref_frame, self.ee_name, time)
+            tf_pose = Pose()
+            tf_pose.position = Point(position[0], position[1], position[2])
+            tf_pose.orientation = Quaternion(orientation[0], orientation[1],
+                                             orientation[2], orientation[3])
+            return tf_pose
+        except (tf.LookupException, tf.ConnectivityException,
+                tf.ExtrapolationException) as e:
+            rospy.logwarn('Something wrong with transform request: ' + str(e))
+            return None
 
     def joint_states_cb(self, msg):
         '''Callback function that saves the joint positions when a
@@ -281,41 +279,6 @@ class Arm:
         elif (gripper_state == GripperState.OPEN):
             self.open_gripper()
 
-    # def exectute_joint_traj(self, joint_trajectory, timing):
-    #     '''Moves the arm through the joint sequence'''
-    #
-    #     # First, do filtering on the trajectory to fix the velocities
-    #     trajectory = JointTrajectory()
-    #
-    #     # Initialize the server
-    #     # When to start the trajectory: 0.1 seconds from now
-    #     trajectory.header.stamp = rospy.Time.now() + rospy.Duration(0.1)
-    #     trajectory.joint_names = self.joint_names
-    #
-    #     ## Add all frames of the trajectory as way points
-    #     for i in range(len(timing)):
-    #         positions = joint_trajectory[i].joint_pose
-    #         velocities = [0] * len(positions)
-    #         # Add frames to the trajectory
-    #         trajectory.points.append(JointTrajectoryPoint(positions=positions,
-    #                                  velocities=velocities,
-    #                                  time_from_start=timing[i]))
-    #
-    #     output = self.filter_service(trajectory=trajectory,
-    #                                  allowed_time=rospy.Duration.from_sec(20))
-    #     rospy.loginfo('Trajectory for arm ' + str(self.arm_index) +
-    #                   ' has been filtered.')
-    #     traj_goal = JointTrajectoryGoal()
-    #
-    #     # TO-DO: check output.error_code
-    #     traj_goal.trajectory = output.trajectory
-    #     traj_goal.trajectory.header.stamp = (rospy.Time.now() +
-    #                                         rospy.Duration(0.1))
-    #     traj_goal.trajectory.joint_names = self.joint_names
-    #
-    #     # Sends the goal to the trajectory server
-    #     self.traj_action_client.send_goal(traj_goal)
-
     def move_to_joints(self, joints, time_to_joint):
         '''Moves the arm to the desired joints'''
         # Setup the goal
@@ -329,17 +292,7 @@ class Arm:
                         velocities=velocities,
                         time_from_start=rospy.Duration(time_to_joint)))
 
-        # # Client sends the goal to the Server
         self.traj_action_client.send_goal(traj_goal)
-        # updated_joints = []
-        # for (joint_name, joint) in zip(self.joint_names, joints):
-        #     rollover = 0
-        #     if 'wrist_roll_joint' in joint_name or 'forearm_roll_joint' in joint_name:
-        #         rollover = int(round((joint / 2) / pi))
-        #     updated_joints.append(joint - rollover * 2 * pi)
-        # self.arm_commander.set_joint_value_target(dict(zip(self.joint_names, updated_joints)))
-        # self.arm_commander.plan()
-        # self.arm_commander.go(wait=False)
 
     #TODO
     def is_executing(self):
@@ -357,12 +310,13 @@ class Arm:
         joints = self._solve_ik(ee_pose, seed)
         ## If our seed did not work, try once again with the default seed
         if joints is None:
-            rospy.logwarn('Could not find IK solution with preferred seed,' +
-                          'will try default seed.')
+            #rospy.logwarn('Could not find IK solution with preferred seed,' +
+            #              'will try default seed.')
             joints = self._solve_ik(ee_pose)
 
         if joints is None:
-            rospy.logwarn('IK out of bounds, will use the seed directly.')
+            pass
+            #rospy.logwarn('IK out of bounds, will use the seed directly.')
         else:
             rollover = array((array(joints) - array(seed)) / pi, int)
             joints -= ((rollover + (sign(rollover) + 1) / 2) / 2) * 2 * pi

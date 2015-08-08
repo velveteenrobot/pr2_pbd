@@ -1,2 +1,2 @@
-GripperState rGripper
-GripperState lGripper
+pr2_arm_control/GripperState rGripper
+pr2_arm_control/GripperState lGripper

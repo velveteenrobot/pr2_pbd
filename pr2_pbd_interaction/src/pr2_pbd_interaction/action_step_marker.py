@@ -28,8 +28,9 @@ from visualization_msgs.msg import (
 
 # Local
 from arms import Arms
+from pr2_arm_control.msg import Side, GripperState
 from pr2_pbd_interaction.msg import (
-    ActionStep, ArmState, GripperState, Object, Side)
+    ActionStep, ArmState, Object)
 from world import World
 
 

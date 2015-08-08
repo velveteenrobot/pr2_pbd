@@ -16,7 +16,7 @@ import yaml
 
 # Local
 from programmed_action import ProgrammedAction
-from pr2_pbd_interaction.msg import ExperimentState, Side
+from pr2_arm_control.msg import ExperimentState, Side
 from pr2_pbd_interaction.srv import (
     GetExperimentState, GetExperimentStateResponse)
 
