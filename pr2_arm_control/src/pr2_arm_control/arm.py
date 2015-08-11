@@ -19,6 +19,8 @@ from sensor_msgs.msg import JointState
 from geometry_msgs.msg import Quaternion, Point, Pose
 from pr2_arm_control.msg import GripperState, ArmMode, Side
 
+# The minimum time to allow for moving between poses.
+DURATION_MIN_THRESHOLD = 0.5  # seconds
 
 class Arm:
     ''' Interfacing with one arm for controlling mode and action execution'''
@@ -58,7 +60,7 @@ class Arm:
         self.switch_service = rospy.ServiceProxy(switch_controller,
                                                  SwitchController)
         rospy.loginfo('Got response form the switch controller for '
-                      + self._side() + ' arm.')
+                      + self.side() + ' arm.')
 
         # # Create a trajectory action client
         traj_controller_name = (self._side_prefix()
@@ -67,7 +69,7 @@ class Arm:
                         traj_controller_name, JointTrajectoryAction)
         self.traj_action_client.wait_for_server()
         rospy.loginfo('Got response form trajectory action server for '
-                      + self._side() + ' arm.')
+                      + self.side() + ' arm.')
 
         # Set up Inversse Kinematics
         self.ik_srv = None
@@ -82,24 +84,24 @@ class Arm:
                                                     Pr2GripperCommandAction)
         self.gripper_client.wait_for_server()
         rospy.loginfo('Got response form gripper server for '
-                      + self._side() + ' arm.')
+                      + self.side() + ' arm.')
 
     def _setup_ik(self):
         '''Sets up services for inverse kinematics'''
         ik_srv_name = '/compute_ik'
         rospy.loginfo('IK info service has responded for '
-                      + self._side() + ' arm.')
+                      + self.side() + ' arm.')
         rospy.wait_for_service(ik_srv_name)
         self.ik_srv = rospy.ServiceProxy(ik_srv_name,
                                          GetPositionIK, persistent=True)
-        rospy.loginfo('IK service has responded for ' + self._side() + ' arm.')
+        rospy.loginfo('IK service has responded for ' + self.side() + ' arm.')
 
         robot = moveit_commander.RobotCommander()
         # Set up common parts of an IK request
         self.ik_request = GetPositionIKRequest()
         request = self.ik_request.ik_request
         request.timeout = rospy.Duration(4)
-        group_name = self._side() + '_arm'
+        group_name = self.side() + '_arm'
         request.group_name = group_name
         self.ik_joints = self.joint_names
         self.ik_limits = [robot.get_joint(x).bounds() for x in self.ik_joints]
@@ -108,7 +110,7 @@ class Arm:
         request.robot_state.joint_state.name = self.ik_joints
         request.robot_state.joint_state.position = [0] * len(self.joint_names)
 
-    def _side(self):
+    def side(self):
         '''Returns the word right or left depending on arm side'''
         if (self.arm_index == Side.RIGHT):
             return 'right'
@@ -117,7 +119,7 @@ class Arm:
 
     def _side_prefix(self):
         ''' Returns the letter r or l depending on arm side'''
-        side = self._side()
+        side = self.side()
         return side[0]
 
     def get_ee_state(self, ref_frame='base_link'):
@@ -199,12 +201,12 @@ class Arm:
         if mode == ArmMode.RELEASE:
             start_controllers = []
             stop_controllers = [controller_name]
-            rospy.loginfo('Switching ' + str(self._side()) +
+            rospy.loginfo('Switching ' + str(self.side()) +
                           ' arm to the kinesthetic mode')
         elif mode == ArmMode.HOLD:
             start_controllers = [controller_name]
             stop_controllers = []
-            rospy.loginfo('Switching ' + str(self._side()) +
+            rospy.loginfo('Switching ' + str(self.side()) +
                           ' to the Joint-control mode')
         else:
             rospy.logwarn('Unknown mode ' + str(mode) +
@@ -293,6 +295,57 @@ class Arm:
                         time_from_start=rospy.Duration(time_to_joint)))
 
         self.traj_action_client.send_goal(traj_goal)
+
+    def get_time_to_pose(self, arm_state):
+        '''Returns the time to get to the arm pose held in arm_state.
+
+        Args:
+            arm_state (ArmState|None): An ArmState holding the pose to
+                move to, or None if the arm should not move.
+
+        Returns:
+            float|None: How long (in seconds) to allow for moving
+                arm to the pose in arm_state, or None if the arm
+                will not move.
+        '''
+        # Get readable strings representing the referred arm.
+        arm_name_lower = self.side()
+        arm_name_cap = arm_name_lower.capitalize()
+
+        # Check whether arm will move at all.
+        if arm_state is None:
+            rospy.loginfo('\t' + arm_name_cap + ' arm will not move.')
+            return None
+        else:
+            time_to_pose = Arm._get_time_bw_poses(
+                self.get_ee_state(),
+                arm_state.ee_pose
+            )
+            rospy.loginfo(
+                '\tDuration until next frame for ' + arm_name_lower +
+                'arm : ' + str(time_to_pose))
+            return time_to_pose
+
+    @staticmethod
+    def _get_time_bw_poses(pose0, pose1, velocity=0.2):
+        '''Determines how much time should be allowed for moving between
+        pose0 and pose1 at velocity.
+
+        Args:
+            pose0 (Pose)
+            pose1 (Pose)
+            velocity (float, optional): Defaults to 0.2.
+
+        Returns:
+            float: How long (in seconds) to allow for moving between
+                pose0 and pose1 and velocity.
+        '''
+        dist = Arm.get_distance_bw_poses(pose0, pose1)
+        duration = dist / velocity
+        return (
+            DURATION_MIN_THRESHOLD if duration < DURATION_MIN_THRESHOLD
+            else duration)
+
 
     #TODO
     def is_executing(self):

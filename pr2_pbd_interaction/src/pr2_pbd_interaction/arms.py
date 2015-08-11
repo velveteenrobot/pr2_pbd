@@ -36,9 +36,6 @@ SIDES = [Side.RIGHT, Side.LEFT]
 # TODO(mbforbes): This is duplicated in arm.py. Use theirs.
 ARM_MOVEMENT_THRESHOLD = 0.02
 
-# The minimum time to allow for moving between poses.
-DURATION_MIN_THRESHOLD = 0.5  # seconds
-
 # How long to sleep between checking whether arms have successfully
 # completed their movement.
 MOVE_TO_JOINTS_SLEEP_INTERVAL = 0.01  # seconds
@@ -280,57 +277,6 @@ class Arms:
         else:
             return Side.RIGHT
 
-    @staticmethod
-    def _get_time_bw_poses(pose0, pose1, velocity=0.2):
-        '''Determines how much time should be allowed for moving between
-        pose0 and pose1 at velocity.
-
-        Args:
-            pose0 (Pose)
-            pose1 (Pose)
-            velocity (float, optional): Defaults to 0.2.
-
-        Returns:
-            float: How long (in seconds) to allow for moving between
-                pose0 and pose1 and velocity.
-        '''
-        dist = Arm.get_distance_bw_poses(pose0, pose1)
-        duration = dist / velocity
-        return (
-            DURATION_MIN_THRESHOLD if duration < DURATION_MIN_THRESHOLD
-            else duration)
-
-    @staticmethod
-    def _get_time_to_pose(arm_state, arm_index):
-        '''Returns the time to get to the arm pose held in arm_state.
-
-        Args:
-            arm_state (ArmState|None): An ArmState holding the pose to
-                move to, or None if the arm should not move.
-            arm_index (int): Side.RIGHT or Side.LEFT
-
-        Returns:
-            float|None: How long (in seconds) to allow for moving
-                arm_index to the pose in arm_state, or None if the arm
-                will not move.
-        '''
-        # Get readable strings representing the referred arm.
-        arm_name_lower = Arms.arms[arm_index]._side()
-        arm_name_cap = arm_name_lower.capitalize()
-
-        # Check whether arm will move at all.
-        if arm_state is None:
-            rospy.loginfo('\t' + arm_name_cap + ' arm will not move.')
-            return None
-        else:
-            time_to_pose = Arms._get_time_bw_poses(
-                Arms.arms[arm_index].get_ee_state(),
-                arm_state.ee_pose
-            )
-            rospy.loginfo(
-                '\tDuration until next frame for ' + arm_name_lower +
-                'arm : ' + str(time_to_pose))
-            return time_to_pose
 
     # ##################################################################
     # Instance methods: Public (API)
@@ -446,7 +392,7 @@ class Arms:
         thread.start()
 
         # Log
-        side_str = Arms.arms[arm_index]._side()
+        side_str = Arms.arms[arm_index].side()
         rospy.loginfo('Started thread to move ' + side_str + ' arm.')
 
     def move_to_pose(self, arm_state, arm_index):
@@ -527,8 +473,8 @@ class Arms:
                 joint positions.
         '''
         # Estimate times to get to both poses.
-        time_to_r_pose = Arms._get_time_to_pose(r_arm, Side.RIGHT)
-        time_to_l_pose = Arms._get_time_to_pose(l_arm, Side.LEFT)
+        time_to_r_pose = self.arms[Side.RIGHT].get_time_to_pose(r_arm)
+        time_to_l_pose = self.arms[Side.LEFT].get_time_to_pose(l_arm)
 
         # If both arms are moving, adjust velocities and find most
         # moving arm. Look at it.

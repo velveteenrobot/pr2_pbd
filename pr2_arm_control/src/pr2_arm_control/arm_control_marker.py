@@ -55,14 +55,6 @@ STR_GRIPPER_PALM_FILE = STR_MESH_GRIPPER_FOLDER + 'gripper_palm.dae'
 STR_GRIPPER_FINGER_FILE = STR_MESH_GRIPPER_FOLDER + 'l_finger.dae'
 STR_GRIPPER_FINGERTIP_FILE = STR_MESH_GRIPPER_FOLDER + 'l_finger_tip.dae'
 
-# Right-click menu.
-MENU_OPTIONS = {
-    'ref': 'Reference frame',
-    'move_here': 'Move arm here',
-    'move_current': 'Move to current arm pose',
-    'del': 'Delete',
-}
-
 # Offets to maintain globally-unique IDs but with new sets of objects.
 # Each action step marker has a unique ID, and this allows each to
 # have a matching unique id for trajectories, text, etc. Assumes we'll
@@ -101,7 +93,7 @@ class ArmControlMarker:
     _im_server = None
     _offset = DEFAULT_OFFSET
 
-    def __init__(self, arm_index):
+    def __init__(self, arm):
         '''
         Args:
             arm_index (int): Side.RIGHT or Side.LEFT
@@ -110,8 +102,7 @@ class ArmControlMarker:
             im_server = InteractiveMarkerServer(TOPIC_IM_SERVER)
             ArmControlMarker._im_server = im_server
 
-        self.arm_index = arm_index
-        self.arm_name = ARM_NAMES[arm_index]
+        self.arm = arm
         self.is_requested = False
         self.is_control_visible = False
         self.is_edited = False
@@ -119,35 +110,11 @@ class ArmControlMarker:
         self._sub_entries = None
         self._menu_handler = None
         self._prev_is_reachable = None
+        self._pose = None ####### EE pose?
 
     # ##################################################################
     # Static methods: Internal ("private")
     # ##################################################################
-
-    @staticmethod
-    def _make_sphere_marker(uid, pose, frame_id, radius):
-        '''Creates and returns a sphere marker.
-
-        Args:
-            uid (int): The id to use for the marker.
-            pose (Pose): The pose of the marker.
-            frame_id (str): Frame the marker is associated with. (See
-                std_msgs/Header.msg for more info.)
-            radius (float): Amount to scale the marker by. Scales in all
-                directions (x, y, and z).
-
-        Returns:
-            Marker
-        '''
-        return Marker(
-            type=Marker.SPHERE,
-            id=uid,
-            lifetime=rospy.Duration(2),
-            scale=Vector3(radius, radius, radius),
-            pose=pose,
-            header=Header(frame_id=frame_id),
-            color=COLOR_TRAJ_ENDPOINT_SPHERES
-        )
 
     @staticmethod
     def _offset_pose(pose, constant=1):
@@ -179,41 +146,7 @@ class ArmControlMarker:
             int: A number that is unique given the arm
                 index.
         '''
-        return self.arm_index
-
-    def decrease_id(self):
-        '''Reduces the step index of the marker.'''
-        self.step_number -= 1
-        self._update_menu()
-
-    def update_ref_frames(self, ref_frame_list):
-        '''Updates and re-assigns coordinate frames when the world changes.
-
-        Args:
-            ref_frame_list ([Object]): List of Object.msg objects, the
-                reference frames of the system.
-        '''
-        # There is a new list of objects. If the current frame is
-        # relative (already assigned to an object) we need to figure out
-        # the correspondences.
-        ArmControlMarker._ref_object_list = ref_frame_list
-        arm_pose = self.get_target()
-        if arm_pose.refFrame == ArmState.OBJECT:
-            prev_ref_obj = arm_pose.refFrameObject
-            new_ref_obj = World.get_most_similar_obj(
-                prev_ref_obj, ref_frame_list)
-            if new_ref_obj is not None:
-                self.has_object = True
-                arm_pose.refFrameObject = new_ref_obj
-            else:
-                self.has_object = False
-
-        # Re-populate cached list of reference names.
-        ArmControlMarker._ref_names = [BASE_LINK]
-        for obj in ArmControlMarker._ref_object_list:
-            ArmControlMarker._ref_names.append(obj.name)
-
-        self._update_menu()
+        return self.arm.arm_index
 
     def destroy(self):
         '''Removes marker from the world.'''
@@ -226,61 +159,8 @@ class ArmControlMarker:
         Args:
             new_pose (Pose)
         '''
-        if self.action_step.type == ActionStep.ARM_TARGET:
-            t = self.action_step.armTarget
-            arm = t.rArm if self.arm_index == Side.RIGHT else t.lArm
-            arm.ee_pose = ArmControlMarker._offset_pose(new_pose, -1)
-            self.update_viz()
-        elif self.action_step.type == ActionStep.ARM_TRAJECTORY:
-            rospy.logwarn(
-                'Modification of whole trajectory segments is not ' +
-                'implemented.')
-
-    def get_absolute_position(self, is_start=True):
-        '''Returns the absolute position of the action step.
-
-        Args:
-            is_start (bool, optional). For trajectories only. Whether to
-                get the final position in the trajectory. Defaults to
-                True.
-
-        Returns:
-            Point
-        '''
-        return self.get_absolute_pose(is_start).position
-
-    def get_absolute_pose(self, is_start=True):
-        '''Returns the absolute pose of the action step.
-
-        Args:
-            is_start (bool, optional). For trajectories only. Whether to
-                get the final pose in the trajectory. Defaults to True.
-
-        Returns:
-            Pose
-        '''
-        if self.action_step.type == ActionStep.ARM_TARGET:
-            # "Normal" saved pose.
-            t = self.action_step.armTarget
-            arm_pose = t.rArm if self.arm_index == Side.RIGHT else t.lArm
-        elif self.action_step.type == ActionStep.ARM_TRAJECTORY:
-            # Trajectory.
-            t = self.action_step.armTrajectory
-            arm = t.rArm if self.arm_index == Side.RIGHT else t.lArm
-            # TODO(mbforbes): Make sure this isn't a bug in the original
-            # implementation. Wouldn't is_start imply you want the first
-            # one?
-            index = len(arm) - 1 if is_start else 0
-            arm_pose = arm[index]
-
-        # TODO(mbforbes): Figure out if there are cases that require
-        # this, or remove.
-        # if (arm_pose.refFrame == ArmState.OBJECT and
-        #     World.has_object(arm_pose.refFrameObject.name)):
-        #     return ArmControlMarker._offset_pose(arm_pose.ee_pose)
-        # else:
-        world_pose = World.get_absolute_pose(arm_pose)
-        return ArmControlMarker._offset_pose(world_pose)
+        self._pose = ArmControlMarker._offset_pose(new_pose, -1)
+        self.update_viz()
 
     def get_pose(self):
         '''Returns the pose of the action step.
@@ -288,49 +168,7 @@ class ArmControlMarker:
         Returns:
             Pose
         '''
-        target = self.get_target()
-        if target is not None:
-            return ArmControlMarker._offset_pose(target.ee_pose)
-
-    def set_target(self, target):
-        '''Sets the new ArmState for this action step.
-
-        Args:
-            target (ArmState): Replacement for this target.
-        '''
-        if self.action_step.type == ActionStep.ARM_TARGET:
-            at = self.action_step.armTarget
-            if self.arm_index == Side.RIGHT:
-                at.rArm = target
-            else:
-                at.lArm = target
-            # TODO(mbforbes): Why is self.has_object set to True here?
-            self.has_object = True
-            self._update_menu()
-        self.is_edited = False
-
-    def get_target(self, traj_index=None):
-        '''Returns the ArmState for this action step.
-
-        Args:
-            traj_index (int, optional): Which step in the trajectory to
-                return the ArmState for. Only applicable for
-                trajectories (not "normal" saved poses). Defaults to
-                None, in which case the middle point is used.
-
-        Returns:
-            ArmState
-        '''
-        if self.action_step.type == ActionStep.ARM_TARGET:
-            t = self.action_step.armTarget
-            return t.rArm if self.arm_index == Side.RIGHT else t.lArm
-        elif self.action_step.type == ActionStep.ARM_TRAJECTORY:
-            t = self.action_step.armTrajectory
-            arm = t.rArm if self.arm_index == Side.RIGHT else t.lArm
-            # If traj_index not passed, use the middle one.
-            if traj_index is None:
-                traj_index = int(len(arm) / 2)
-            return arm[traj_index]
+        return ArmControlMarker._offset_pose(self._pose)
 
     def update_viz(self):
         '''Updates visualization fully.'''
@@ -341,25 +179,6 @@ class ArmControlMarker:
     def pose_reached(self):
         '''Update when a requested pose is reached.'''
         self.is_requested = False
-
-    def change_ref_cb(self, feedback):
-        '''Callback for when a reference frame change is requested.
-
-        Args:
-            feedback (InteractiveMarkerFeedback (?))
-        '''
-        self._menu_handler.setCheckState(
-            self._get_menu_id(self._get_ref_name()), MenuHandler.UNCHECKED)
-        self._menu_handler.setCheckState(
-            feedback.menu_entry_id, MenuHandler.CHECKED)
-        new_ref = self._get_menu_name(feedback.menu_entry_id)
-        self._set_ref(new_ref)
-        rospy.loginfo(
-            'Switching reference frame to ' + new_ref + ' for action step ' +
-            self._get_name())
-        self._menu_handler.reApply(ArmControlMarker._im_server)
-        ArmControlMarker._im_server.applyChanges()
-        self.update_viz()
 
     def marker_feedback_cb(self, feedback):
         '''Callback for when an event occurs on the marker.
@@ -385,16 +204,6 @@ class ArmControlMarker:
             # fires here).
             rospy.logdebug('Unknown event: ' + str(feedback.event_type))
 
-    # TODO(mbforbes): Figure out types of objects sent to these
-    # callbacks.
-
-    def delete_step_cb(self, __):
-        '''Callback for when delete is requested.
-
-        Args:
-            __ (???): Unused
-        '''
-        self.is_deleted = True
 
     def move_to_cb(self, __):
         '''Callback for when moving to a pose is requested.
@@ -402,7 +211,27 @@ class ArmControlMarker:
         Args:
             __ (???): Unused
         '''
-        self.is_requested = True
+
+        target_joints = self.arm.get_ik_for_ee(
+                self._pose, self.arm.get_joint_state())
+
+        if target_joints is not None:
+            time_to_pose = self.arm.get_time_to_pose(self.pose)
+
+            thread = threading.Thread(
+                group=None,
+                target=self.arm.move_to_joints,
+                args=(target_joints, time_to_pose),
+                name='move_to_arm_state_thread'
+            )
+            thread.start()
+
+            # Log
+            side_str = self.arm.side()
+            rospy.loginfo('Started thread to move ' + side_str + ' arm.')
+        else:
+            rospy.loginfo('Will not move ' + side_str + ' arm, because unreachable.')
+
 
     def move_pose_to_cb(self, __):
         '''Callback for when a pose change to current is requested.
@@ -424,8 +253,13 @@ class ArmControlMarker:
         Returns:
             bool: Whether this action step is reachable.
         '''
-        dummy, is_reachable = Arms.solve_ik_for_arm(
-            self.arm_index, self.get_target())
+
+        target_joints = self.arm.get_ik_for_ee(
+                self._pose, self.arm.get_joint_state())
+
+
+        is_reachable = (target_joints is not None)
+
         # A bit more complicated logging to avoid spamming the logs
         # while still giving useful info. It now logs when reachability
         # is first calculated, or changes.
@@ -446,7 +280,7 @@ class ArmControlMarker:
         # Log if it's changed.
         if report:
             rospy.loginfo(
-                'Pose (' + str(self.step_number) + ', ' + self.arm_name
+                'Pose (' + str(self.step_number) + ', ' + self.arm.side()
                 + ') ' + reachable_str)
 
         # Cache and return.
@@ -459,115 +293,30 @@ class ArmControlMarker:
         Returns:
             str: A human-readable unique name for the marker.
         '''
-        return 'step' + str(self.step_number) + 'arm' + str(self.arm_index)
+        return 'step' + str(self.step_number) + 'arm' + str(self.arm.arm_index)
 
     def _update_menu(self):
         '''Recreates the menu when something has changed.'''
         self._menu_handler = MenuHandler()
 
-        # Insert sub entries.
-        self._sub_entries = []
-        frame_entry = self._menu_handler.insert(MENU_OPTIONS['ref'])
-        refs = ArmControlMarker._ref_names
-        for ref in refs:
-            subent = self._menu_handler.insert(
-                ref, parent=frame_entry, callback=self.change_ref_cb)
-            self._sub_entries += [subent]
-
         # Inset main menu entries.
         self._menu_handler.insert(
-            MENU_OPTIONS['move_here'], callback=self.move_to_cb)
+            'Move arm here', callback=self.move_to_cb)
         self._menu_handler.insert(
-            MENU_OPTIONS['move_current'], callback=self.move_pose_to_cb)
-        self._menu_handler.insert(
-            MENU_OPTIONS['del'], callback=self.delete_step_cb)
+            'Move to current arm pose', callback=self.move_pose_to_cb)
 
-        # Make all unchecked to start.
-        for subent in self._sub_entries:
-            self._menu_handler.setCheckState(subent, MenuHandler.UNCHECKED)
-
-        # Check if necessary.
-        menu_id = self._get_menu_id(self._get_ref_name())
-        if menu_id is None:
-            self.has_object = False
+        if self._is_hand_open():
+            self._menu_handler.insert(
+                MENU_OPTIONS['Close gripper'], callback=self.arm.close_gripper)
         else:
-            self._menu_handler.setCheckState(menu_id, MenuHandler.CHECKED)
+            self._menu_handler.insert(
+                MENU_OPTIONS['Open gripper'], callback=self.arm.open_gripper)
+
 
         # Update.
         self._update_viz_core()
         self._menu_handler.apply(ArmControlMarker._im_server, self._get_name())
         ArmControlMarker._im_server.applyChanges()
-
-    def _get_menu_id(self, ref_name):
-        '''Returns the unique menu id from its name or None if the
-        object is not found.
-
-        Returns:
-            int (?)|None
-        '''
-        if ref_name in ArmControlMarker._ref_names:
-            index = ArmControlMarker._ref_names.index(ref_name)
-            return self._sub_entries[index]
-        else:
-            return None
-
-    def _get_menu_name(self, menu_id):
-        '''Returns the menu name from its unique menu id.
-
-        Returns:
-            str
-        '''
-        index = self._sub_entries.index(menu_id)
-        return ArmControlMarker._ref_names[index]
-
-    def _get_ref_name(self):
-        '''Returns the name string for the reference frame object of the
-        action step.
-
-        Returns:
-            str|None: Under all normal circumstances, returns the str
-                reference frame name. Returns None in error.
-        '''
-        return BASE_LINK
-
-    def _set_ref(self, new_ref_name):
-        '''Changes the reference frame of the action step to
-        new_ref_name.
-
-        Args:
-            new_ref_name
-        '''
-        # Get the id of the new ref (an int).
-        new_ref = World.get_ref_from_name(new_ref_name)
-        if new_ref != ArmState.ROBOT_BASE:
-            index = ArmControlMarker._ref_names.index(new_ref_name)
-            new_ref_obj = ArmControlMarker._ref_object_list[index - 1]
-        else:
-            new_ref_obj = Object()
-
-        if self.action_step.type == ActionStep.ARM_TARGET:
-            # Handle "normal" steps (saved poses).
-            t = self.action_step.armTarget
-            if self.arm_index == Side.RIGHT:
-                t.rArm = World.convert_ref_frame(t.rArm, new_ref, new_ref_obj)
-            else:
-                t.lArm = World.convert_ref_frame(t.lArm, new_ref, new_ref_obj)
-        elif self.action_step.type == ActionStep.ARM_TRAJECTORY:
-            # Handle trajectory steps.
-            t = self.action_step.armTrajectory
-            arm = t.rArm if self.arm_index == Side.RIGHT else t.lArm
-            for i in range(len(arm)):
-                arm_old = arm[i]
-                arm_new = World.convert_ref_frame(
-                    arm_old, new_ref, new_ref_obj)
-                arm[i] = arm_new
-            # Fix up reference frames.
-            if self.arm_index == Side.RIGHT:
-                t.rRefFrameObject = new_ref_obj
-                t.rRefFrame = new_ref
-            else:
-                t.lRefFrameObject = new_ref_obj
-                t.lRefFrame = new_ref
 
     def _is_hand_open(self):
         '''Returns whether the gripper is open for this action step.
@@ -575,29 +324,7 @@ class ArmControlMarker:
         Returns:
             bool
         '''
-        ga = self.action_step.gripperAction
-        gstate = ga.rGripper if self.arm_index == Side.RIGHT else ga.lGripper
-        return gstate.state == GripperState.OPEN
-
-    def _get_traj_pose(self, index):
-        '''Returns this trajectory's pose at index. Only applicable for
-        trajectories.
-
-        Args:
-            index (int): Which step in the trajectory to return the
-                pose from.
-
-        Returns:
-            Pose
-        '''
-        if self.action_step.type == ActionStep.ARM_TRAJECTORY:
-            at = self.action_step.armTrajectory
-            arm_states = at.rArm if self.arm_index == Side.RIGHT else at.lArm
-            return arm_states[index].ee_pose
-        else:
-            rospy.logerr(
-                'Cannot request trajectory pose on non-trajectory action ' +
-                'step.')
+        return self.arm.get_gripper_state() == GripperState.OPEN
 
     def _update_viz_core(self):
         '''Updates visualization after a change.'''
@@ -612,23 +339,6 @@ class ArmControlMarker:
         # Handle "normal" steps (saved poses).
         menu_control = self._make_gripper_marker(
             menu_control, self._is_hand_open())
-
-        # Make and add the text for this step ('Step X').
-        # text_pos = Point()
-        # text_pos.x = pose.position.x
-        # text_pos.y = pose.position.y
-        # text_pos.z = pose.position.z + TEXT_Z_OFFSET
-        # menu_control.markers.append(
-        #     Marker(
-        #         type=Marker.TEXT_VIEW_FACING,
-        #         id=self.get_uid(),
-        #         scale=SCALE_STEP_TEXT,
-        #         text='Step ' + str(self.step_number),
-        #         color=COLOR_STEP_TEXT,
-        #         header=Header(frame_id=frame_id),
-        #         pose=Pose(text_pos, Quaternion(0, 0, 0, 1))
-        #     )
-        # )
 
         # Make and add interactive marker.
         int_marker = InteractiveMarker()
