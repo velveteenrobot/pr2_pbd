@@ -17,14 +17,8 @@ from interactive_markers.menu_handler import MenuHandler
 from visualization_msgs.msg import (
     Marker, InteractiveMarker, InteractiveMarkerControl,
     InteractiveMarkerFeedback)
-
-# Local
-#from arms import Arms
+import threading
 from pr2_arm_control.msg import Side, GripperState
-#from pr2_pbd_interaction.msg import (
-#    ActionStep, ArmState, Object)
-#from world import World
-
 
 # ######################################################################
 # Module level constants
@@ -35,17 +29,8 @@ DEFAULT_OFFSET = 0.09
 # Marker options
 # --------------
 # Colors
-COLOR_TRAJ_ENDPOINT_SPHERES = ColorRGBA(1.0, 0.5, 0.0, 0.8)
-COLOR_TRAJ_STEP_SPHERES = ColorRGBA(0.8, 0.4, 0.0, 0.8)
-COLOR_OBJ_REF_ARROW = ColorRGBA(1.0, 0.8, 0.2, 0.5)
-COLOR_STEP_TEXT = ColorRGBA(0.0, 0.0, 0.0, 0.5)
-COLOR_MESH_REACHABLE = ColorRGBA(1.0, 0.5, 0.0, 0.6)
+COLOR_MESH_REACHABLE = ColorRGBA(0.0, 0.5, 1.0, 0.6)
 COLOR_MESH_UNREACHABLE = ColorRGBA(0.5, 0.5, 0.5, 0.6)
-
-# Scales
-SCALE_TRAJ_STEP_SPHERES = Vector3(0.02, 0.02, 0.02)
-SCALE_OBJ_REF_ARROW = Vector3(0.02, 0.03, 0.04)
-SCALE_STEP_TEXT = Vector3(0, 0, 0.03)
 
 # Gripper mesh related
 ANGLE_GRIPPER_OPEN = 28 * numpy.pi / 180.0
@@ -55,28 +40,12 @@ STR_GRIPPER_PALM_FILE = STR_MESH_GRIPPER_FOLDER + 'gripper_palm.dae'
 STR_GRIPPER_FINGER_FILE = STR_MESH_GRIPPER_FOLDER + 'l_finger.dae'
 STR_GRIPPER_FINGERTIP_FILE = STR_MESH_GRIPPER_FOLDER + 'l_finger_tip.dae'
 
-# Offets to maintain globally-unique IDs but with new sets of objects.
-# Each action step marker has a unique ID, and this allows each to
-# have a matching unique id for trajectories, text, etc. Assumes we'll
-# have < 1k steps.
-ID_OFFSET_REF_ARROW = 1000
-ID_OFFSET_TRAJ_FIRST = 2000
-ID_OFFSET_TRAJ_LAST = 3000
-
 # Other
-TRAJ_MARKER_LIFETIME = rospy.Duration(2)
-TEXT_Z_OFFSET = 0.1
 INT_MARKER_SCALE = 0.2
-TRAJ_ENDPOINT_SCALE = 0.05
-
-# ROS topics, etc.
-# ----------------
-# Namespace for interactive marker server.
-TOPIC_IM_SERVER = 'programmed_actions'
 
 # We might want to refactor this even further, as it's used throughout
 # the code.
-BASE_LINK = 'base_link'
+REF_FRAME = 'base_link'
 
 # Other options
 # --------------
@@ -99,10 +68,10 @@ class ArmControlMarker:
             arm_index (int): Side.RIGHT or Side.LEFT
         '''
         if ArmControlMarker._im_server is None:
-            im_server = InteractiveMarkerServer(TOPIC_IM_SERVER)
+            im_server = InteractiveMarkerServer('interactive_arm_control')
             ArmControlMarker._im_server = im_server
 
-        self.arm = arm
+        self._arm = arm
         self.is_requested = False
         self.is_control_visible = False
         self.is_edited = False
@@ -110,11 +79,49 @@ class ArmControlMarker:
         self._sub_entries = None
         self._menu_handler = None
         self._prev_is_reachable = None
-        self._pose = None ####### EE pose?
+        self._pose = self._arm.get_ee_state()
+        self._update_menu()
+        self.update_viz()
 
     # ##################################################################
     # Static methods: Internal ("private")
     # ##################################################################
+
+    @staticmethod
+    def get_pose_from_transform(transform):
+        '''Returns pose for transformation matrix.
+
+        Args:
+            transform (Matrix3x3): (I think this is the correct type.
+                See ActionStepMarker as a reference for how to use.)
+
+        Returns:
+            Pose
+        '''
+        pos = transform[:3, 3].copy()
+        rot = tf.transformations.quaternion_from_matrix(transform)
+        return Pose(
+            Point(pos[0], pos[1], pos[2]),
+            Quaternion(rot[0], rot[1], rot[2], rot[3])
+        )
+
+    @staticmethod
+    def get_matrix_from_pose(pose):
+        '''Returns the transformation matrix for given pose.
+
+        Args:
+            pose (Pose)
+
+        Returns:
+            Matrix3x3: (I think this is the correct type. See
+                ActionStepMarker as a reference for how to use.)
+        '''
+        pp, po = pose.position, pose.orientation
+        rotation = [po.x, po.y, po.z, po.w]
+        transformation = tf.transformations.quaternion_matrix(rotation)
+        position = [pp.x, pp.y, pp.z]
+        transformation[:3, 3] = position
+        return transformation
 
     @staticmethod
     def _offset_pose(pose, constant=1):
@@ -128,12 +135,12 @@ class ArmControlMarker:
         Returns:
             Pose: The offset pose.
         '''
-        transform = World.get_matrix_from_pose(pose)
+        transform = ArmControlMarker.get_matrix_from_pose(pose)
         offset_array = [constant * ArmControlMarker._offset, 0, 0]
         offset_transform = tf.transformations.translation_matrix(offset_array)
         hand_transform = tf.transformations.concatenate_matrices(
             transform, offset_transform)
-        return World.get_pose_from_transform(hand_transform)
+        return ArmControlMarker.get_pose_from_transform(hand_transform)
 
     # ##################################################################
     # Instance methods: Public (API)
@@ -146,20 +153,23 @@ class ArmControlMarker:
             int: A number that is unique given the arm
                 index.
         '''
-        return self.arm.arm_index
+        return self._arm.arm_index
 
     def destroy(self):
         '''Removes marker from the world.'''
         ArmControlMarker._im_server.erase(self._get_name())
         ArmControlMarker._im_server.applyChanges()
 
-    def set_new_pose(self, new_pose):
+    def set_new_pose(self, new_pose, is_offset=False):
         '''Changes the pose of the action step to new_pose.
 
         Args:
             new_pose (Pose)
         '''
-        self._pose = ArmControlMarker._offset_pose(new_pose, -1)
+        if is_offset:
+            self._pose = new_pose
+        else:
+            self._pose = ArmControlMarker._offset_pose(new_pose, -1)
         self.update_viz()
 
     def get_pose(self):
@@ -196,14 +206,20 @@ class ArmControlMarker:
             # fires here).
             rospy.logdebug('Changing visibility of the pose controls.')
             self.is_control_visible = not self.is_control_visible
-            ArmControlMarker._marker_click_cb(
-                self.get_uid(), self.is_control_visible)
         else:
             # This happens a ton, and doesn't need to be logged like
             # normal events (e.g. clicking on most marker controls
             # fires here).
             rospy.logdebug('Unknown event: ' + str(feedback.event_type))
 
+
+    def open_gripper_cb(self, __):
+        self._arm.open_gripper()
+        self._update_menu()
+
+    def close_gripper_cb(self, __):
+        self._arm.close_gripper()
+        self._update_menu()
 
     def move_to_cb(self, __):
         '''Callback for when moving to a pose is requested.
@@ -212,27 +228,28 @@ class ArmControlMarker:
             __ (???): Unused
         '''
 
-        target_joints = self.arm.get_ik_for_ee(
-                self._pose, self.arm.get_joint_state())
+        target_joints = self._arm.get_ik_for_ee(
+                self._pose, self._arm.get_joint_state())
 
         if target_joints is not None:
-            time_to_pose = self.arm.get_time_to_pose(self.pose)
+            time_to_pose = self._arm.get_time_to_pose(self.get_pose())
 
             thread = threading.Thread(
                 group=None,
-                target=self.arm.move_to_joints,
+                target=self._arm.move_to_joints,
                 args=(target_joints, time_to_pose),
                 name='move_to_arm_state_thread'
             )
             thread.start()
 
             # Log
-            side_str = self.arm.side()
+            side_str = self._arm.side()
             rospy.loginfo('Started thread to move ' + side_str + ' arm.')
         else:
             rospy.loginfo('Will not move ' + side_str + ' arm, because unreachable.')
 
 
+    #### TODO... if necessary..
     def move_pose_to_cb(self, __):
         '''Callback for when a pose change to current is requested.
 
@@ -240,7 +257,7 @@ class ArmControlMarker:
             __ (???): Unused
 
         '''
-        self.is_edited = True
+        self.set_new_pose(self._arm.get_ee_state(), is_offset=True)
 
     # ##################################################################
     # Instance methods: Internal ("private")
@@ -254,8 +271,8 @@ class ArmControlMarker:
             bool: Whether this action step is reachable.
         '''
 
-        target_joints = self.arm.get_ik_for_ee(
-                self._pose, self.arm.get_joint_state())
+        target_joints = self._arm.get_ik_for_ee(
+                self._pose, self._arm.get_joint_state())
 
 
         is_reachable = (target_joints is not None)
@@ -279,9 +296,7 @@ class ArmControlMarker:
 
         # Log if it's changed.
         if report:
-            rospy.loginfo(
-                'Pose (' + str(self.step_number) + ', ' + self.arm.side()
-                + ') ' + reachable_str)
+            rospy.loginfo(self._arm.side() + ':' + reachable_str)
 
         # Cache and return.
         self._prev_is_reachable = is_reachable
@@ -293,7 +308,7 @@ class ArmControlMarker:
         Returns:
             str: A human-readable unique name for the marker.
         '''
-        return 'step' + str(self.step_number) + 'arm' + str(self.arm.arm_index)
+        return 'arm' + str(self._arm.arm_index)
 
     def _update_menu(self):
         '''Recreates the menu when something has changed.'''
@@ -301,16 +316,18 @@ class ArmControlMarker:
 
         # Inset main menu entries.
         self._menu_handler.insert(
-            'Move arm here', callback=self.move_to_cb)
+            'Move gripper here', callback=self.move_to_cb)
         self._menu_handler.insert(
-            'Move to current arm pose', callback=self.move_pose_to_cb)
+            'Move marker to current gripper pose', callback=self.move_pose_to_cb)
 
         if self._is_hand_open():
             self._menu_handler.insert(
-                MENU_OPTIONS['Close gripper'], callback=self.arm.close_gripper)
+                'Close gripper',
+                callback=self.close_gripper_cb)
         else:
             self._menu_handler.insert(
-                MENU_OPTIONS['Open gripper'], callback=self.arm.open_gripper)
+                'Open gripper',
+                callback=self.open_gripper_cb)
 
 
         # Update.
@@ -324,7 +341,7 @@ class ArmControlMarker:
         Returns:
             bool
         '''
-        return self.arm.get_gripper_state() == GripperState.OPEN
+        return self._arm.get_gripper_state() == GripperState.OPEN
 
     def _update_viz_core(self):
         '''Updates visualization after a change.'''
@@ -332,7 +349,7 @@ class ArmControlMarker:
         menu_control = InteractiveMarkerControl()
         menu_control.interaction_mode = InteractiveMarkerControl.BUTTON
         menu_control.always_visible = True
-        frame_id = self._get_ref_name()
+        frame_id = REF_FRAME
         pose = self.get_pose()
 
         # Multiplex marker types added based on action step type.
@@ -472,12 +489,12 @@ class ArmControlMarker:
         # Create mesh 2 (finger).
         mesh2 = self._make_mesh_marker()
         mesh2.mesh_resource = STR_GRIPPER_FINGER_FILE
-        mesh2.pose = World.get_pose_from_transform(t_proximal)
+        mesh2.pose = ArmControlMarker.get_pose_from_transform(t_proximal)
 
         # Create mesh 3 (fingertip).
         mesh3 = self._make_mesh_marker()
         mesh3.mesh_resource = STR_GRIPPER_FINGERTIP_FILE
-        mesh3.pose = World.get_pose_from_transform(t_distal)
+        mesh3.pose = ArmControlMarker.get_pose_from_transform(t_distal)
 
         # Make transforms in preparation for meshes 4 and 5.
         quat = tf.transformations.quaternion_multiply(
@@ -495,12 +512,12 @@ class ArmControlMarker:
         # Create mesh 4 (other finger).
         mesh4 = self._make_mesh_marker()
         mesh4.mesh_resource = STR_GRIPPER_FINGER_FILE
-        mesh4.pose = World.get_pose_from_transform(t_proximal)
+        mesh4.pose = ArmControlMarker.get_pose_from_transform(t_proximal)
 
         # Create mesh 5 (other fingertip).
         mesh5 = self._make_mesh_marker()
         mesh5.mesh_resource = STR_GRIPPER_FINGERTIP_FILE
-        mesh5.pose = World.get_pose_from_transform(t_distal)
+        mesh5.pose = ArmControlMarker.get_pose_from_transform(t_distal)
 
         # Append all meshes we made.
         control.markers.append(mesh1)

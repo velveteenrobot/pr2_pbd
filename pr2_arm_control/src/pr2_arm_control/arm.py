@@ -85,6 +85,7 @@ class Arm:
         self.gripper_client.wait_for_server()
         rospy.loginfo('Got response form gripper server for '
                       + self.side() + ' arm.')
+        self.check_gripper_state()
 
     def _setup_ik(self):
         '''Sets up services for inverse kinematics'''
@@ -296,16 +297,16 @@ class Arm:
 
         self.traj_action_client.send_goal(traj_goal)
 
-    def get_time_to_pose(self, arm_state):
-        '''Returns the time to get to the arm pose held in arm_state.
+    def get_time_to_pose(self, target_pose):
+        '''Returns the time to get to the arm pose held in target_pose.
 
         Args:
-            arm_state (ArmState|None): An ArmState holding the pose to
+            target_pose (Pose|None): A Pose holding the pose to
                 move to, or None if the arm should not move.
 
         Returns:
             float|None: How long (in seconds) to allow for moving
-                arm to the pose in arm_state, or None if the arm
+                arm to the pose in target_pose, or None if the arm
                 will not move.
         '''
         # Get readable strings representing the referred arm.
@@ -313,13 +314,13 @@ class Arm:
         arm_name_cap = arm_name_lower.capitalize()
 
         # Check whether arm will move at all.
-        if arm_state is None:
+        if target_pose is None:
             rospy.loginfo('\t' + arm_name_cap + ' arm will not move.')
             return None
         else:
             time_to_pose = Arm._get_time_bw_poses(
                 self.get_ee_state(),
-                arm_state.ee_pose
+                target_pose
             )
             rospy.loginfo(
                 '\tDuration until next frame for ' + arm_name_lower +

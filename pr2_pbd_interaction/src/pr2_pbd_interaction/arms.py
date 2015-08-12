@@ -473,8 +473,8 @@ class Arms:
                 joint positions.
         '''
         # Estimate times to get to both poses.
-        time_to_r_pose = self.arms[Side.RIGHT].get_time_to_pose(r_arm)
-        time_to_l_pose = self.arms[Side.LEFT].get_time_to_pose(l_arm)
+        time_to_r_pose = self.arms[Side.RIGHT].get_time_to_pose(r_arm.ee_pose)
+        time_to_l_pose = self.arms[Side.LEFT].get_time_to_pose(l_arm.ee_pose)
 
         # If both arms are moving, adjust velocities and find most
         # moving arm. Look at it.

@@ -64,9 +64,6 @@ class Interaction:
     # TODO(mbforbes): Document class attributes in docstring.
 
     def __init__(self):
-        # Register as a ROS node.
-        rospy.init_node('pr2_pbd_interaction', anonymous=True)
-
         # Create main components.
         self.world = World()
         self.arms = Arms(World.tf_listener)
@@ -167,11 +164,11 @@ class Interaction:
         itself is being shutdown.'''
         rospy.loginfo('Interaction node shutting down.')
 
-    def _update(self):
+    def update(self):
         '''General update for the main loop.
 
-        This is called continuously in interaction.py, without pause,
-        until ROS is shutdown. This pauses for 100ms at the end of every
+        This is called continuously from the node.
+        This pauses for 100ms at the end of every
         run before returning.
         '''
         # Loop while not shutdown.

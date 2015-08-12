@@ -20,11 +20,12 @@ signal.signal(signal.SIGQUIT, signal_handler)
 
 
 if __name__ == '__main__':
-    # Check whether we want code coverage, and start if so.
     global interaction
+
+    # Register as a ROS node.
+    rospy.init_node('pr2_pbd_interaction', anonymous=True)
 
     # Run the system
     interaction_ = Interaction()
-    rospy.spin()
-    #while(not rospy.is_shutdown()):
-    #    interaction.update()
+    while(not rospy.is_shutdown()):
+        interaction.update()

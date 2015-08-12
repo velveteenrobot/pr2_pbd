@@ -1,0 +1,10 @@
+<launch>
+
+	<!-- Are we running in simulation or on the real robot? -->
+	<arg name="sim" default="false" />
+
+  	<include file="$(find pr2_moveit_config)/launch/move_group.launch" />
+
+	<node name="pr2_arm_control" pkg="pr2_arm_control" type="arm_control_node.py" output="screen">
+	</node>
+</launch>
