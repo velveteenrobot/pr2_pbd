@@ -5,7 +5,6 @@ an action.'''
 # Imports
 # ######################################################################
 
-# Core ROS imports come first.
 import rospy
 import numpy
 from geometry_msgs.msg import Quaternion, Vector3, Point, Pose
@@ -21,47 +20,30 @@ import threading
 from pr2_arm_control.msg import Side, GripperState
 
 # ######################################################################
-# Module level constants
+# Constants
 # ######################################################################
 
 DEFAULT_OFFSET = 0.09
-
-# Marker options
-# --------------
-# Colors
 COLOR_MESH_REACHABLE = ColorRGBA(0.5, 0.5, 0.5, 0.6)
 COLOR_MESH_UNREACHABLE = ColorRGBA(0.05, 0.05, 0.05, 0.6)
-
-# Gripper mesh related
 ANGLE_GRIPPER_OPEN = 28 * numpy.pi / 180.0
 ANGLE_GRIPPER_CLOSED = 0.0
 STR_MESH_GRIPPER_FOLDER = 'package://pr2_description/meshes/gripper_v0/'
 STR_GRIPPER_PALM_FILE = STR_MESH_GRIPPER_FOLDER + 'gripper_palm.dae'
 STR_GRIPPER_FINGER_FILE = STR_MESH_GRIPPER_FOLDER + 'l_finger.dae'
 STR_GRIPPER_FINGERTIP_FILE = STR_MESH_GRIPPER_FOLDER + 'l_finger_tip.dae'
-
-# Other
 INT_MARKER_SCALE = 0.2
 GRIPPER_MARKER_SCALE = 1.05
-
-# We might want to refactor this even further, as it's used throughout
-# the code.
 REF_FRAME = 'base_link'
 
-# Other options
-# --------------
-ARM_NAMES = ['right', 'left']
-
-
 # ######################################################################
-# Classes
+# Class 
 # ######################################################################
 
 class ArmControlMarker:
     '''Marker for visualizing the steps of an action.'''
 
     _im_server = None
-    _offset = DEFAULT_OFFSET
 
     def __init__(self, arm):
         '''
@@ -87,7 +69,8 @@ class ArmControlMarker:
         self._menu_handler.insert(
             'Move gripper here', callback=self.move_to_cb)
         self._menu_handler.insert(
-            'Move marker to current gripper pose', callback=self.move_pose_to_cb)
+            'Move marker to current gripper pose',
+            callback=self.move_pose_to_cb)
 
         if self._is_hand_open():
             self._menu_handler.insert(
@@ -118,7 +101,8 @@ class ArmControlMarker:
         ArmControlMarker._im_server.insert(
             int_marker, self.marker_feedback_cb)
 
-        self._menu_handler.apply(ArmControlMarker._im_server, self._get_name())
+        self._menu_handler.apply(ArmControlMarker._im_server,
+            self._get_name())
         ArmControlMarker._im_server.applyChanges()
 
     def reset(self):
@@ -167,21 +151,17 @@ class ArmControlMarker:
         Args:
             pose (Pose): The pose to offset.
             constant (int, optional): How much to scale the set offset
-                by (scales ArmControlMarker._offset). Defaults to 1.
+                by (scales DEFAULT_OFFSET). Defaults to 1.
 
         Returns:
             Pose: The offset pose.
         '''
         transform = ArmControlMarker.get_matrix_from_pose(pose)
-        offset_array = [constant * ArmControlMarker._offset, 0, 0]
+        offset_array = [constant * DEFAULT_OFFSET, 0, 0]
         offset_transform = tf.transformations.translation_matrix(offset_array)
         hand_transform = tf.transformations.concatenate_matrices(
             transform, offset_transform)
         return ArmControlMarker.get_pose_from_transform(hand_transform)
-
-    # ##################################################################
-    # Instance methods: Public (API)
-    # ##################################################################
 
     def get_uid(self):
         '''Returns a unique id for this marker.
@@ -214,7 +194,10 @@ class ArmControlMarker:
     def copy_pose(pose):
         copy = Pose(
             Point(pose.position.x, pose.position.y, pose.position.z),
-            Quaternion(pose.orientation.x, pose.orientation.y, pose.orientation.z, pose.orientation.w)
+            Quaternion(pose.orientation.x,
+                pose.orientation.y,
+                pose.orientation.z,
+                pose.orientation.w)
         )
         return copy
 
@@ -286,7 +269,7 @@ class ArmControlMarker:
             side_str = self._arm.side()
             rospy.loginfo('Started thread to move ' + side_str + ' arm.')
         else:
-            rospy.loginfo('Will not move ' + side_str + ' arm, because unreachable.')
+            rospy.loginfo('Will not move ' + side_str + ' arm; unreachable.')
 
     def move_pose_to_cb(self, __):
         '''Callback for when a pose change to current is requested.
@@ -296,10 +279,6 @@ class ArmControlMarker:
 
         '''
         self.reset()
-
-    # ##################################################################
-    # Instance methods: Internal ("private")
-    # ##################################################################
 
     def _is_reachable(self):
         '''Checks and returns whether there is an IK solution for this
@@ -379,7 +358,8 @@ class ArmControlMarker:
         ]
         for opt in options:
             name, orient, is_move = opt
-            control = self._make_6dof_control(name, orient, is_move, is_fixed)
+            control = self._make_6dof_control(
+                name, orient, is_move, is_fixed)
             int_marker.controls.append(control)
 
     def _make_6dof_control(self, name, orientation, is_move, is_fixed):
@@ -465,7 +445,7 @@ class ArmControlMarker:
         # left in here as (a) they likely won't be changed, and (b) it's
         # easier to understand the computations with them here.
         transform1 = tf.transformations.euler_matrix(0, 0, angle)
-        transform1[:3, 3] = [0.07691 - ArmControlMarker._offset, 0.01, 0]
+        transform1[:3, 3] = [0.07691 - DEFAULT_OFFSET, 0.01, 0]
         transform2 = tf.transformations.euler_matrix(0, 0, -angle)
         transform2[:3, 3] = [0.09137, 0.00495, 0]
         t_proximal = transform1
@@ -475,7 +455,7 @@ class ArmControlMarker:
         # Create mesh 1 (palm).
         mesh1 = self._make_mesh_marker()
         mesh1.mesh_resource = STR_GRIPPER_PALM_FILE
-        mesh1.pose.position.x = -ArmControlMarker._offset
+        mesh1.pose.position.x = -DEFAULT_OFFSET
         mesh1.pose.orientation.w = 1
 
         # Create mesh 2 (finger).
@@ -494,7 +474,7 @@ class ArmControlMarker:
             tf.transformations.quaternion_from_euler(0, 0, angle)
         )
         transform1 = tf.transformations.quaternion_matrix(quat)
-        transform1[:3, 3] = [0.07691 - ArmControlMarker._offset, -0.01, 0]
+        transform1[:3, 3] = [0.07691 - DEFAULT_OFFSET, -0.01, 0]
         transform2 = tf.transformations.euler_matrix(0, 0, -angle)
         transform2[:3, 3] = [0.09137, 0.00495, 0]
         t_proximal = transform1
