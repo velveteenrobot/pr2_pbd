@@ -160,10 +160,10 @@ class ProgrammedAction:
             copy.armTrajectory.lRefFrame = int(
                 action_step.armTrajectory.lRefFrame)
             # WARNING: the following is not really copying
-            r_obj = action_step.armTrajectory.rRefFrameObject
-            l_obj = action_step.armTrajectory.lRefFrameObject
-            copy.armTrajectory.rRefFrameObject = r_obj
-            copy.armTrajectory.lRefFrameObject = l_obj
+            r_obj = action_step.armTrajectory.rRefFrameLandmark
+            l_obj = action_step.armTrajectory.lRefFrameLandmark
+            copy.armTrajectory.rRefFrameLandmark = r_obj
+            copy.armTrajectory.lRefFrameLandmark = l_obj
 
         # NOTE(mbforbes): Conditions currently aren't copied (though
         # they also currently don't do anything, so I'm leaving for
@@ -192,7 +192,7 @@ class ProgrammedAction:
         copy.ee_pose = Pose(
             arm_state.ee_pose.position, arm_state.ee_pose.orientation)
         # WARNING: the following is not really copying
-        copy.refFrameObject = arm_state.refFrameObject
+        copy.refFrameLandmark = arm_state.refFrameLandmark
         return copy
 
     # ##################################################################
@@ -218,8 +218,8 @@ class ProgrammedAction:
 
         Args:
             step (ActionStep): The new step to add.
-            object_list ([Object]): List of Object (as defined by
-                Object.msg), the current reference frames.
+            object_list ([Landmark]): List of Landmark (as defined by
+                Landmark.msg), the current reference frames.
         '''
         self.lock.acquire()
         self.seq.seq.append(self._copy_action_step(step))
@@ -264,8 +264,8 @@ class ProgrammedAction:
         '''Updates the object list for all of this action's steps.
 
         Args:
-            object_list ([Object]): List of Object (as defined by
-                Object.msg), the current reference frames.
+            object_list ([Landmark]): List of Landmark (as defined by
+                Landmark.msg), the current reference frames.
         '''
         self.lock.acquire()
         self._update_markers()
@@ -476,8 +476,8 @@ class ProgrammedAction:
         '''Initialize visualization.
 
         Args:
-            object_list ([Object]): List of Object (as defined by
-                Object.msg), the current reference frames.
+            object_list ([Landmark]): List of Landmark (as defined by
+                Landmark.msg), the current reference frames.
         '''
         self.lock.acquire()
         for i in range(len(self.seq.seq)):
@@ -597,7 +597,7 @@ class ProgrammedAction:
         for action_step in self.seq.seq:
             target = action_step.armTarget
             arm = target.rArm if arm_index == Side.RIGHT else target.lArm
-            ref_frame_names += [arm.refFrameObject.name]
+            ref_frame_names += [arm.refFrameLandmark.name]
         self.lock.release()
         return ref_frame_names
 

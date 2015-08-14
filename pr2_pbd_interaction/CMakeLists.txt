@@ -29,7 +29,7 @@ add_message_files(
   ArmState.msg
   Condition.msg
   GripperAction.msg
-  Object.msg
+  Landmark.msg
   ActionStepSequence.msg
   ArmTarget.msg
   ExecutionStatus.msg

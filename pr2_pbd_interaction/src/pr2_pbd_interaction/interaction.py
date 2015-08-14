@@ -23,7 +23,7 @@ from pr2_arm_control.msg import ArmMode, Side, GripperState
 from pr2_pbd_interaction.arms import Arms
 from session import Session
 from pr2_pbd_interaction.msg import (
-    ArmState, ActionStep, ArmTarget, Object, GripperAction,
+    ArmState, ActionStep, ArmTarget, Landmark, GripperAction,
     ArmTrajectory, ExecutionStatus, GuiCommand)
 from pr2_pbd_interaction.srv import Ping, PingResponse
 from pr2_pbd_speech_recognition.msg import Command
@@ -396,7 +396,7 @@ class Interaction:
         '''Creates a new empty action.
 
         Args:
-            __ (Object): unused, default: None
+            __ (Landmark): unused, default: None
 
         Returns:
             [str, int]: a speech response and a GazeGoal.* constant
@@ -411,7 +411,7 @@ class Interaction:
         '''Switches to next action.
 
         Args:
-            __ (Object): unused, default: None
+            __ (Landmark): unused, default: None
 
         Returns:
             [str, int]: a speech response and a GazeGoal.* constant
@@ -432,7 +432,7 @@ class Interaction:
         '''Switches to previous action.
 
         Args:
-            __ (Object): unused, default: None
+            __ (Landmark): unused, default: None
 
         Returns:
             [str, int]: a speech response and a GazeGoal.* constant
@@ -455,7 +455,7 @@ class Interaction:
         '''Deletes last step of the current action.
 
         Args:
-            __ (Object): unused, default: None
+            __ (Landmark): unused, default: None
 
         Returns:
             [str, int]: a speech response and a GazeGoal.* constant
@@ -473,7 +473,7 @@ class Interaction:
         '''Deletes all steps in the current action.
 
         Args:
-            __ (Object): unused, default: None
+            __ (Landmark): unused, default: None
 
         Returns:
             [str, int]: a speech response and a GazeGoal.* constant
@@ -491,7 +491,7 @@ class Interaction:
         '''Stops ongoing execution.
 
         Args:
-            __ (Object): unused, default: None
+            __ (Landmark): unused, default: None
 
         Returns:
             [str, int]: a speech response and a GazeGoal.* constant
@@ -506,7 +506,7 @@ class Interaction:
         '''Starts recording continuous motion.
 
         Args:
-            __ (Object): unused, default: None
+            __ (Landmark): unused, default: None
 
         Returns:
             [str, int]: a speech response and a GazeGoal.* constant
@@ -526,7 +526,7 @@ class Interaction:
         '''Stops recording continuous motion.
 
         Args:
-            __ (Object): unused, default: None
+            __ (Landmark): unused, default: None
 
         Returns:
             [str, int]: a speech response and a GazeGoal.* constant
@@ -550,8 +550,8 @@ class Interaction:
                 self._arm_trajectory.timing[:],  # (duration[])
                 self._arm_trajectory.rRefFrame,  # (uint8)
                 self._arm_trajectory.lRefFrame,  # (uint8)
-                self._arm_trajectory.rRefFrameObject,  # (Object)
-                self._arm_trajectory.lRefFrameObject  # (Object)
+                self._arm_trajectory.rRefFrameLandmark,  # (Landmark)
+                self._arm_trajectory.lRefFrameLandmark  # (Landmark)
             )
             traj_step.gripperAction = GripperAction(
                 GripperState(self.arms.get_gripper_state(Side.RIGHT)),
@@ -570,7 +570,7 @@ class Interaction:
         '''Saves current arm state as an action step.
 
         Args:
-            __ (Object): unused, default: None
+            __ (Landmark): unused, default: None
 
         Returns:
             [str, int]: a speech response and a GazeGoal.* constant
@@ -600,7 +600,7 @@ class Interaction:
         Only does anything when at least one action has been created.
 
         Args:
-            __ (Object): unused, default: None
+            __ (Landmark): unused, default: None
 
         Returns:
             [str, int]: a speech response and a GazeGoal.* constant
@@ -631,7 +631,7 @@ class Interaction:
         This saves the action before starting it.
 
         Args:
-            __ (Object): unused, default: None
+            __ (Landmark): unused, default: None
 
         Returns:
             [str, int]: a speech response and a GazeGoal.* constant
@@ -741,8 +741,8 @@ class Interaction:
         # reference.
         t.rRefFrame = r_ref_n
         t.lRefFrame = l_ref_n
-        t.rRefFrameObject = r_ref_obj
-        t.lRefFrameObject = l_ref_obj
+        t.rRefFrameLandmark = r_ref_obj
+        t.lRefFrameLandmark = l_ref_obj
 
     def _find_dominant_ref(self, arm_traj, frame_list):
         '''Finds the most dominant reference frame in a continuous
@@ -751,29 +751,29 @@ class Interaction:
         Args:
             arm_traj (ArmState[]): List of arm states that form the arm
                 trajectory.
-            frame_list ([Object]): List of Object (as defined by
-                Object.msg), the current reference frames.
+            frame_list ([Landmark]): List of Landmark (as defined by
+                Landmark.msg), the current reference frames.
 
         Returns:
-            (int, Object): Tuple of the dominant reference frame's
+            (int, Landmark): Tuple of the dominant reference frame's
                 number (as one of the constants available in ArmState to
-                be set as ArmState.refFrame) and Object (as in
-                Object.msg).
+                be set as ArmState.refFrame) and Landmark (as in
+                Landmark.msg).
         '''
         # Cycle through all arm states and check their reference frames.
         # Whichever one is most frequent becomes the dominant one.
-        robot_base = Object(name=BASE_LINK)
+        robot_base = Landmark(name=BASE_LINK)
         ref_counts = Counter()
         for arm_state in arm_traj:
             # We only track objects that
             if arm_state.refFrame == ArmState.ROBOT_BASE:
                 ref_counts[robot_base] += 1
-            elif arm_state.refFrameObject in frame_list:
-                ref_counts[arm_state.refFrameObject] += 1
+            elif arm_state.refFrameLandmark in frame_list:
+                ref_counts[arm_state.refFrameLandmark] += 1
             else:
                 rospy.logwarn(
                     'Ignoring object with reference frame name '
-                    + arm_state.refFrameObject.name
+                    + arm_state.refFrameLandmark.name
                     + ' because the world does not have this object.')
 
         # Get most common obj.
@@ -819,7 +819,7 @@ class Interaction:
                     ArmState.ROBOT_BASE,  # refFrame (uint8)
                     abs_ee_poses[arm_index],  # ee_pose (Pose)
                     joint_poses[arm_index],  # joint_pose ([float64])
-                    Object()  # refFrameObject (Object)
+                    Landmark()  # refFrameLandmark (Landmark)
                 )
             else:
                 # Arm state is relative (to some object in the world).
@@ -832,7 +832,7 @@ class Interaction:
                     ArmState.OBJECT,  # refFrame (uint8)
                     rel_ee_poses[arm_index],  # ee_pose (Pose)
                     joint_poses[arm_index],  # joint_pose [float64]
-                    nearest_obj  # refFrameObject (Object)
+                    nearest_obj  # refFrameLandmark (Landmark)
                 )
         return states
 

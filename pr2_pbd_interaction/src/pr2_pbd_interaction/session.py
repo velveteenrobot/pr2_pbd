@@ -48,8 +48,8 @@ class Session:
     def __init__(self, object_list):
         '''
         Args:
-            object_list ([Object]): List of Object (as defined by
-                Object.msg), the current reference frames.
+            object_list ([Landmark]): List of Landmark (as defined by
+                Landmark.msg), the current reference frames.
         '''
         # Private attirbutes.
         self._is_reload = rospy.get_param(PARAM_IS_RELOAD)
@@ -190,8 +190,8 @@ class Session:
 
         Args:
             step (ActionStep): The new step to add.
-            object_list ([Object]): List of Object (as defined by
-                Object.msg), the current reference frames.
+            object_list ([Landmark]): List of Landmark (as defined by
+                Landmark.msg), the current reference frames.
         '''
         if self.n_actions() > 0:
             self.actions[self.current_action_index].add_action_step(
@@ -217,8 +217,8 @@ class Session:
 
         Args:
             action_number (int): The action number to switch to.
-            object_list ([Object]): List of Object (as defined by
-                Object.msg), the current reference frames.
+            object_list ([Landmark]): List of Landmark (as defined by
+                Landmark.msg), the current reference frames.
 
         Returns:
             bool: Whether successfully switched to action_number action.
@@ -247,8 +247,8 @@ class Session:
         is now used.
 
         Args:
-            object_list ([Object]): List of Object (as defined by
-                Object.msg), the current reference frames.
+            object_list ([Landmark]): List of Landmark (as defined by
+                Landmark.msg), the current reference frames.
 
         Returns:
             bool: Whether successfully switched to the next action.
@@ -263,8 +263,8 @@ class Session:
         is now used.
 
         Args:
-            object_list ([Object]): List of Object (as defined by
-                Object.msg), the current reference frames.
+            object_list ([Landmark]): List of Landmark (as defined by
+                Landmark.msg), the current reference frames.
 
         Returns:
             bool: Whether successfully switched to the previous action.
@@ -379,8 +379,8 @@ class Session:
         '''Loads the experiment state from disk.
 
         Args:
-            object_list ([Object]): List of Object (as defined by
-                Object.msg), the current reference frames.
+            object_list ([Landmark]): List of Landmark (as defined by
+                Landmark.msg), the current reference frames.
         '''
         # Load data from YAML file into Python dictionary.
         with open(self._data_dir + SAVE_FILENAME, 'r') as state_file:

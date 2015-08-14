@@ -111,11 +111,11 @@ class Response:
         Args:
             function_to_call (function): Upon respond(...), the function
                 that should be called.
-            function_param (Object): Upon respond(...), when calling
+            function_param (Landmark): Upon respond(...), when calling
                 function_to_call, the argument that should be passed in.
-                Note that unlike almost every other instance of Object
-                in the code, this could be any python Object, not the
-                Object.msg Object.
+                Note that unlike almost every other instance of Landmark
+                in the code, this could be any python Landmark, not the
+                Landmark.msg Landmark.
         '''
         self.function_to_call = function_to_call
         self.function_param = function_param

@@ -30,7 +30,7 @@ from visualization_msgs.msg import (
 from arms import Arms
 from pr2_arm_control.msg import Side, GripperState
 from pr2_pbd_interaction.msg import (
-    ActionStep, ArmState, Object)
+    ActionStep, ArmState, Landmark)
 from world import World
 
 
@@ -231,7 +231,7 @@ class ActionStepMarker:
         '''Updates and re-assigns coordinate frames when the world changes.
 
         Args:
-            ref_frame_list ([Object]): List of Object.msg objects, the
+            ref_frame_list ([Landmark]): List of Landmark.msg objects, the
                 reference frames of the system.
         '''
         # There is a new list of objects. If the current frame is
@@ -240,12 +240,12 @@ class ActionStepMarker:
         ActionStepMarker._ref_object_list = ref_frame_list
         arm_pose = self.get_target()
         if arm_pose.refFrame == ArmState.OBJECT:
-            prev_ref_obj = arm_pose.refFrameObject
+            prev_ref_obj = arm_pose.refFrameLandmark
             new_ref_obj = World.get_most_similar_obj(
                 prev_ref_obj, ref_frame_list)
             if new_ref_obj is not None:
                 self.has_object = True
-                arm_pose.refFrameObject = new_ref_obj
+                arm_pose.refFrameLandmark = new_ref_obj
             else:
                 self.has_object = False
 
@@ -317,7 +317,7 @@ class ActionStepMarker:
         # TODO(mbforbes): Figure out if there are cases that require
         # this, or remove.
         # if (arm_pose.refFrame == ArmState.OBJECT and
-        #     World.has_object(arm_pose.refFrameObject.name)):
+        #     World.has_object(arm_pose.refFrameLandmark.name)):
         #     return ActionStepMarker._offset_pose(arm_pose.ee_pose)
         # else:
         world_pose = World.get_absolute_pose(arm_pose)
@@ -575,16 +575,16 @@ class ActionStepMarker:
             t = self.action_step.armTarget
             arm = t.rArm if self.arm_index == Side.RIGHT else t.lArm
             ref_frame = arm.refFrame
-            ref_name = arm.refFrameObject.name
+            ref_name = arm.refFrameLandmark.name
         elif self.action_step.type == ActionStep.ARM_TRAJECTORY:
             # "Trajectory" step.
             t = self.action_step.armTrajectory
             if self.arm_index == Side.RIGHT:
                 ref_frame = t.rRefFrame
-                ref_name = t.rRefFrameObject.name
+                ref_name = t.rRefFrameLandmark.name
             else:
                 ref_frame = t.lRefFrame
-                ref_name = t.lRefFrameObject.name
+                ref_name = t.lRefFrameLandmark.name
         else:
             rospy.logerr(
                 'Unhandled marker type: ' + str(self.action_step.type))
@@ -608,7 +608,7 @@ class ActionStepMarker:
             index = ActionStepMarker._ref_names.index(new_ref_name)
             new_ref_obj = ActionStepMarker._ref_object_list[index - 1]
         else:
-            new_ref_obj = Object()
+            new_ref_obj = Landmark()
 
         if self.action_step.type == ActionStep.ARM_TARGET:
             # Handle "normal" steps (saved poses).
@@ -628,10 +628,10 @@ class ActionStepMarker:
                 arm[i] = arm_new
             # Fix up reference frames.
             if self.arm_index == Side.RIGHT:
-                t.rRefFrameObject = new_ref_obj
+                t.rRefFrameLandmark = new_ref_obj
                 t.rRefFrame = new_ref
             else:
-                t.lRefFrameObject = new_ref_obj
+                t.lRefFrameLandmark = new_ref_obj
                 t.lRefFrame = new_ref
 
     def _is_hand_open(self):

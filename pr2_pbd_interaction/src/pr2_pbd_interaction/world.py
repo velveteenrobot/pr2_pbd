@@ -23,7 +23,7 @@ import actionlib
 from math import pi, sin, cos
 # from ar_track_alvar.msg import AlvarMarkers
 from tabletop_object_detector.srv import TabletopSegmentation
-from pr2_pbd_interaction.msg import Object, ArmState
+from pr2_pbd_interaction.msg import Landmark, ArmState
 from pr2_pbd_interaction.response import Response
 from pr2_social_gaze.msg import GazeGoal
 
@@ -43,14 +43,14 @@ OBJ_ADD_DIST_THRESHHOLD = 0.02
 # 'near' it.
 OBJ_NEAREST_DIST_THRESHHOLD = 0.4
 
-# Object distances below this will be clamped to zero.
+# Landmark distances below this will be clamped to zero.
 OBJ_DIST_ZERO_CLAMP = 0.0001
 
 # Scales
 SCALE_TEXT = Vector3(0.0, 0.0, 0.03)
 SURFACE_HEIGHT = 0.01  # 0.01 == 1cm (I think)
 OFFSET_OBJ_TEXT_Z = 0.06  # How high objects' labels are above them.
-# Object dimensions. I don't fully understand this, as it seems like
+# Landmark dimensions. I don't fully understand this, as it seems like
 # each object's dimensions should be extracted from the point cloud.
 # But apparently this works and is a default or something?
 DIMENSIONS_OBJ = Vector3(0.2, 0.2, 0.2)
@@ -76,7 +76,7 @@ RECOGNITION_TIMEOUT_SECONDS = rospy.Duration(5.0)
 # Classes
 # ######################################################################
 
-class WorldObject:
+class WorldLandmark:
     '''Class for representing objects'''
 
     def __init__(self, pose, index, dimensions, is_recognized):
@@ -90,8 +90,8 @@ class WorldObject:
         self.index = index
         self.assigned_name = None
         self.is_recognized = is_recognized
-        self.object = Object(
-            Object.TABLE_TOP, self.get_name(), pose, dimensions)
+        self.object = Landmark(
+            Landmark.TABLE_TOP, self.get_name(), pose, dimensions)
         self.menu_handler = MenuHandler()
         self.int_marker = None
         self.is_removed = False
@@ -143,7 +143,7 @@ class World:
 
     tf_listener = None
 
-    # Type: [WorldObject]
+    # Type: [WorldLandmark]
     objects = []
 
     def __init__(self):
@@ -178,7 +178,7 @@ class World:
         # Setup other ROS machinery
         # rospy.Subscriber(
         #     'interactive_object_recognition_result',
-        #     GraspableObjectList,
+        #     GraspableLandmarkList,
         #     self.receive_object_info)
         # rospy.Subscriber('tabletop_segmentation_markers',
         #     Marker,
@@ -244,7 +244,7 @@ class World:
                     arm_state.ee_pose.position,
                     arm_state.ee_pose.orientation),
                 arm_state.joint_pose[:],
-                arm_state.refFrameObject)
+                arm_state.refFrameLandmark)
             World.convert_ref_frame(arm_state_copy, ArmState.ROBOT_BASE)
             return arm_state_copy.ee_pose
         else:
@@ -256,11 +256,11 @@ class World:
 
         Args:
             ref_object (?)
-            ref_frame_list ([Object]): List of objects (as defined by
-                Object.msg).
+            ref_frame_list ([Landmark]): List of objects (as defined by
+                Landmark.msg).
 
         Returns:
-            Object|None: As in one of Object.msg, or None if no object
+            Landmark|None: As in one of Landmark.msg, or None if no object
                 was found close enough.
         '''
         best_dist = 10000  # Not a constant; an absurdly high number.
@@ -273,7 +273,7 @@ class World:
         if chosen_obj is None:
             rospy.loginfo('Did not find a similar object.')
         else:
-            rospy.loginfo('Object dissimilarity is --- ' + str(best_dist))
+            rospy.loginfo('Landmark dissimilarity is --- ' + str(best_dist))
             if best_dist > OBJ_SIMILAR_DIST_THRESHHOLD:
                 rospy.loginfo('Found some objects, but not similar enough.')
                 chosen_obj = None
@@ -286,10 +286,10 @@ class World:
 
     @staticmethod
     def get_frame_list():
-        '''Function that returns the list of reference frames (Objects).
+        '''Function that returns the list of reference frames (Landmarks).
 
         Returns:
-            [Object]: List of Object (as defined by Object.msg), the
+            [Landmark]: List of Landmark (as defined by Landmark.msg), the
                 current reference frames.
         '''
         return [w_obj.object for w_obj in World.objects]
@@ -332,13 +332,13 @@ class World:
             return ArmState.OBJECT
 
     @staticmethod
-    def convert_ref_frame(arm_frame, ref_frame, ref_frame_obj=Object()):
+    def convert_ref_frame(arm_frame, ref_frame, ref_frame_obj=Landmark()):
         '''Transforms an arm frame to a new ref. frame.
 
         Args:
             arm_frame (ArmState)
             ref_frame (int): One of ArmState.*
-            ref_frame_obj (Object): As in Object.msg
+            ref_frame_obj (Landmark): As in Landmark.msg
 
         Returns:
             ArmState: arm_frame (passed in), but modified.
@@ -353,12 +353,12 @@ class World:
                 # Transform from object to robot base.
                 abs_ee_pose = World.transform(
                     arm_frame.ee_pose,
-                    arm_frame.refFrameObject.name,
+                    arm_frame.refFrameLandmark.name,
                     'base_link'
                 )
                 arm_frame.ee_pose = abs_ee_pose
                 arm_frame.refFrame = ArmState.ROBOT_BASE
-                arm_frame.refFrameObject = Object()
+                arm_frame.refFrameLandmark = Landmark()
             else:
                 rospy.logerr(
                     'Unhandled reference frame conversion: ' +
@@ -370,10 +370,10 @@ class World:
                     arm_frame.ee_pose, 'base_link', ref_frame_obj.name)
                 arm_frame.ee_pose = rel_ee_pose
                 arm_frame.refFrame = ArmState.OBJECT
-                arm_frame.refFrameObject = ref_frame_obj
+                arm_frame.refFrameLandmark = ref_frame_obj
             elif arm_frame.refFrame == ArmState.OBJECT:
                 # Transform between the same object (nothign to do).
-                if arm_frame.refFrameObject.name == ref_frame_obj.name:
+                if arm_frame.refFrameLandmark.name == ref_frame_obj.name:
                     rospy.logdebug(
                         'No reference frame transformations needed (same ' +
                         'object).')
@@ -381,12 +381,12 @@ class World:
                     # Transform between two different objects.
                     rel_ee_pose = World.transform(
                         arm_frame.ee_pose,
-                        arm_frame.refFrameObject.name,
+                        arm_frame.refFrameLandmark.name,
                         ref_frame_obj.name
                     )
                     arm_frame.ee_pose = rel_ee_pose
                     arm_frame.refFrame = ArmState.OBJECT
-                    arm_frame.refFrameObject = ref_frame_obj
+                    arm_frame.refFrameLandmark = ref_frame_obj
             else:
                 rospy.logerr(
                     'Unhandled reference frame conversion: ' +
@@ -395,7 +395,7 @@ class World:
 
     @staticmethod
     def has_object(object_name):
-        '''Returns whether the world contains an Object with object_name.
+        '''Returns whether the world contains an Landmark with object_name.
 
         Args:
             object_name (str)
@@ -671,7 +671,7 @@ class World:
             arm_pose (Pose): End-effector pose.
 
         Returns:
-            Object|None: As in Object.msg, the nearest object (if it
+            Landmark|None: As in Landmark.msg, the nearest object (if it
                 is close enough), or None if there were none close
                 enough.
         '''
@@ -826,7 +826,7 @@ class World:
             mesh (Mesh|None): A mesh, if it exists (can be None).
         '''
         n_objects = len(World.objects)
-        World.objects.append(WorldObject(
+        World.objects.append(WorldLandmark(
             pose, n_objects, dimensions, is_recognized))
         int_marker = self._get_object_marker(len(World.objects) - 1)
         World.objects[-1].int_marker = int_marker

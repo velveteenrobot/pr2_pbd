@@ -7,5 +7,5 @@ duration[] timing
 # arms.
 uint8 rRefFrame
 uint8 lRefFrame
-Object rRefFrameObject
-Object lRefFrameObject
+Landmark rRefFrameLandmark
+Landmark lRefFrameLandmark

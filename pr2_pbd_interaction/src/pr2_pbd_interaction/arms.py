@@ -155,7 +155,7 @@ class Arms:
             # Arm is relative.
             solution = ArmState()
             target_pose = World.transform(
-                arm_state.ee_pose, arm_state.refFrameObject.name, 'base_link')
+                arm_state.ee_pose, arm_state.refFrameLandmark.name, 'base_link')
             target_pose.position.z = target_pose.position.z + z_offset
 
             # Try solving IK.
