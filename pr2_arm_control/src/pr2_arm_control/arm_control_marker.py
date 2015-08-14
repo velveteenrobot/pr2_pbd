@@ -66,18 +66,14 @@ class ArmControlMarker:
     def __init__(self, arm):
         '''
         Args:
-            arm_index (int): Side.RIGHT or Side.LEFT
+            arm (Arm): Arm object for the right or left PR2 arm.
         '''
         if ArmControlMarker._im_server is None:
             im_server = InteractiveMarkerServer('interactive_arm_control')
             ArmControlMarker._im_server = im_server
 
         self._arm = arm
-        self.is_requested = False
-        self.is_control_visible = False
-        self.is_edited = False
-
-        self._sub_entries = None
+        self._is_control_visible = False
         self._menu_handler = None
         self._prev_is_reachable = None
         self._pose = self._arm.get_ee_state()
@@ -233,10 +229,6 @@ class ArmControlMarker:
         self._lock.release()
         return ArmControlMarker._offset_pose(pose)
 
-    def pose_reached(self):
-        '''Update when a requested pose is reached.'''
-        self.is_requested = False
-
     def marker_feedback_cb(self, feedback):
         '''Callback for when an event occurs on the marker.
 
@@ -251,7 +243,7 @@ class ArmControlMarker:
             # normal events (e.g. clicking on most marker controls
             # fires here).
             rospy.logdebug('Changing visibility of the pose controls.')
-            self.is_control_visible = not self.is_control_visible
+            self._is_control_visible = not self._is_control_visible
         else:
             # This happens a ton, and doesn't need to be logged like
             # normal events (e.g. clicking on most marker controls
@@ -410,7 +402,7 @@ class ArmControlMarker:
         control.name = name
         control.orientation = orientation
         control.always_visible = False
-        if self.is_control_visible:
+        if self._is_control_visible:
             if is_move:
                 control.interaction_mode = InteractiveMarkerControl.MOVE_AXIS
             else:
