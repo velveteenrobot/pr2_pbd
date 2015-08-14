@@ -29,8 +29,8 @@ DEFAULT_OFFSET = 0.09
 # Marker options
 # --------------
 # Colors
-COLOR_MESH_REACHABLE = ColorRGBA(0.2, 0.4, 0.2, 0.6)
-COLOR_MESH_UNREACHABLE = ColorRGBA(0.4, 0.4, 0.4, 0.6)
+COLOR_MESH_REACHABLE = ColorRGBA(0.5, 0.5, 0.5, 0.6)
+COLOR_MESH_UNREACHABLE = ColorRGBA(0.05, 0.05, 0.05, 0.6)
 
 # Gripper mesh related
 ANGLE_GRIPPER_OPEN = 28 * numpy.pi / 180.0
@@ -42,6 +42,7 @@ STR_GRIPPER_FINGERTIP_FILE = STR_MESH_GRIPPER_FOLDER + 'l_finger_tip.dae'
 
 # Other
 INT_MARKER_SCALE = 0.2
+GRIPPER_MARKER_SCALE = 1.05
 
 # We might want to refactor this even further, as it's used throughout
 # the code.
@@ -80,12 +81,49 @@ class ArmControlMarker:
         self._menu_handler = None
         self._prev_is_reachable = None
         self._pose = self._arm.get_ee_state()
-        self._update_menu()
-        self.update_viz()
+        self._lock = threading.Lock()
 
-    # ##################################################################
-    # Static methods: Internal ("private")
-    # ##################################################################
+    def update(self):
+
+        self._menu_handler = MenuHandler()
+
+        # Inset main menu entries.
+        self._menu_handler.insert(
+            'Move gripper here', callback=self.move_to_cb)
+        self._menu_handler.insert(
+            'Move marker to current gripper pose', callback=self.move_pose_to_cb)
+
+        if self._is_hand_open():
+            self._menu_handler.insert(
+                'Close gripper',
+                callback=self.close_gripper_cb)
+        else:
+            self._menu_handler.insert(
+                'Open gripper',
+                callback=self.open_gripper_cb)
+
+        menu_control = InteractiveMarkerControl()
+        menu_control.interaction_mode = InteractiveMarkerControl.BUTTON
+        menu_control.always_visible = True
+        frame_id = REF_FRAME
+        pose = self.get_pose()
+
+        menu_control = self._make_gripper_marker(
+            menu_control, self._is_hand_open())
+
+        # Make and add interactive marker.
+        int_marker = InteractiveMarker()
+        int_marker.name = self._get_name()
+        int_marker.header.frame_id = frame_id
+        int_marker.pose = pose
+        int_marker.scale = INT_MARKER_SCALE
+        self._add_6dof_marker(int_marker, True)
+        int_marker.controls.append(menu_control)
+        ArmControlMarker._im_server.insert(
+            int_marker, self.marker_feedback_cb)
+
+        self._menu_handler.apply(ArmControlMarker._im_server, self._get_name())
+        ArmControlMarker._im_server.applyChanges()
 
     def reset(self):
         self.set_new_pose(self._arm.get_ee_state(), is_offset=True)  
@@ -169,11 +207,20 @@ class ArmControlMarker:
         Args:
             new_pose (Pose)
         '''
+        self._lock.acquire()
         if is_offset:
             self._pose = new_pose
         else:
             self._pose = ArmControlMarker._offset_pose(new_pose, -1)
-        self.update_viz()
+        self._lock.release()
+
+    @staticmethod
+    def copy_pose(pose):
+        copy = Pose(
+            Point(pose.position.x, pose.position.y, pose.position.z),
+            Quaternion(pose.orientation.x, pose.orientation.y, pose.orientation.z, pose.orientation.w)
+        )
+        return copy
 
     def get_pose(self):
         '''Returns the pose of the action step.
@@ -181,13 +228,10 @@ class ArmControlMarker:
         Returns:
             Pose
         '''
-        return ArmControlMarker._offset_pose(self._pose)
-
-    def update_viz(self):
-        '''Updates visualization fully.'''
-        self._update_viz_core()
-        self._menu_handler.reApply(ArmControlMarker._im_server)
-        ArmControlMarker._im_server.applyChanges()
+        self._lock.acquire()
+        pose = ArmControlMarker.copy_pose(self._pose)
+        self._lock.release()
+        return ArmControlMarker._offset_pose(pose)
 
     def pose_reached(self):
         '''Update when a requested pose is reached.'''
@@ -201,7 +245,6 @@ class ArmControlMarker:
         '''
         if feedback.event_type == InteractiveMarkerFeedback.POSE_UPDATE:
             self.set_new_pose(feedback.pose)
-            self.update_viz()
         elif feedback.event_type == InteractiveMarkerFeedback.BUTTON_CLICK:
             # Set the visibility of the 6DOF controller.
             # This happens a ton, and doesn't need to be logged like
@@ -218,11 +261,9 @@ class ArmControlMarker:
 
     def open_gripper_cb(self, __):
         self._arm.open_gripper()
-        self._update_menu()
 
     def close_gripper_cb(self, __):
         self._arm.close_gripper()
-        self._update_menu()
 
     def move_to_cb(self, __):
         '''Callback for when moving to a pose is requested.
@@ -231,8 +272,12 @@ class ArmControlMarker:
             __ (???): Unused
         '''
 
+        self._lock.acquire()
+        pose = ArmControlMarker.copy_pose(self._pose)
+        self._lock.release()
+
         target_joints = self._arm.get_ik_for_ee(
-                self._pose, self._arm.get_joint_state())
+                pose, self._arm.get_joint_state())
 
         if target_joints is not None:
             time_to_pose = self._arm.get_time_to_pose(self.get_pose())
@@ -272,8 +317,12 @@ class ArmControlMarker:
             bool: Whether this action step is reachable.
         '''
 
+        self._lock.acquire()
+        pose = ArmControlMarker.copy_pose(self._pose)
+        self._lock.release()
+
         target_joints = self._arm.get_ik_for_ee(
-                self._pose, self._arm.get_joint_state())
+                pose, self._arm.get_joint_state())
 
 
         is_reachable = (target_joints is not None)
@@ -311,31 +360,6 @@ class ArmControlMarker:
         '''
         return 'arm' + str(self._arm.arm_index)
 
-    def _update_menu(self):
-        '''Recreates the menu when something has changed.'''
-        self._menu_handler = MenuHandler()
-
-        # Inset main menu entries.
-        self._menu_handler.insert(
-            'Move gripper here', callback=self.move_to_cb)
-        self._menu_handler.insert(
-            'Move marker to current gripper pose', callback=self.move_pose_to_cb)
-
-        if self._is_hand_open():
-            self._menu_handler.insert(
-                'Close gripper',
-                callback=self.close_gripper_cb)
-        else:
-            self._menu_handler.insert(
-                'Open gripper',
-                callback=self.open_gripper_cb)
-
-
-        # Update.
-        self._update_viz_core()
-        self._menu_handler.apply(ArmControlMarker._im_server, self._get_name())
-        ArmControlMarker._im_server.applyChanges()
-
     def _is_hand_open(self):
         '''Returns whether the gripper is open for this action step.
 
@@ -343,31 +367,6 @@ class ArmControlMarker:
             bool
         '''
         return self._arm.get_gripper_state() == GripperState.OPEN
-
-    def _update_viz_core(self):
-        '''Updates visualization after a change.'''
-        # Create a new IM control.
-        menu_control = InteractiveMarkerControl()
-        menu_control.interaction_mode = InteractiveMarkerControl.BUTTON
-        menu_control.always_visible = True
-        frame_id = REF_FRAME
-        pose = self.get_pose()
-
-        # Multiplex marker types added based on action step type.
-        # Handle "normal" steps (saved poses).
-        menu_control = self._make_gripper_marker(
-            menu_control, self._is_hand_open())
-
-        # Make and add interactive marker.
-        int_marker = InteractiveMarker()
-        int_marker.name = self._get_name()
-        int_marker.header.frame_id = frame_id
-        int_marker.pose = pose
-        int_marker.scale = INT_MARKER_SCALE
-        self._add_6dof_marker(int_marker, True)
-        int_marker.controls.append(menu_control)
-        ArmControlMarker._im_server.insert(
-            int_marker, self.marker_feedback_cb)
 
     def _add_6dof_marker(self, int_marker, is_fixed):
         '''Adds a 6 DoF control marker to the interactive marker.
@@ -431,9 +430,9 @@ class ArmControlMarker:
         mesh = Marker()
         mesh.mesh_use_embedded_materials = False
         mesh.type = Marker.MESH_RESOURCE
-        mesh.scale.x = 1.01
-        mesh.scale.y = 1.01
-        mesh.scale.z = 1.01
+        mesh.scale.x = GRIPPER_MARKER_SCALE
+        mesh.scale.y = GRIPPER_MARKER_SCALE
+        mesh.scale.z = GRIPPER_MARKER_SCALE
         mesh.color = self._get_mesh_marker_color()
         return mesh
 

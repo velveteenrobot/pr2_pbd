@@ -26,3 +26,7 @@ class ArmControls:
     def reset_arm_controls(self, dummy):
     	self.r_marker.reset()
     	self.l_marker.reset()
+
+    def update(self):
+        self.r_marker.update()
+        self.l_marker.update()

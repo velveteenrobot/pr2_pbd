@@ -15,6 +15,6 @@ if __name__ == '__main__':
 
     # Run the system
     arm_controls = ArmControls()
-    rospy.spin()
-    #while(not rospy.is_shutdown()):
-    #    interaction.update()
+    while(not rospy.is_shutdown()):
+        arm_controls.update()
+        rospy.sleep(0.05)
