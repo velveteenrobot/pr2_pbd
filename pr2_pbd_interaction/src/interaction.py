@@ -657,6 +657,8 @@ class Interaction:
                 if action.is_object_required():
                     # We need an object; check if we have one.
                     if self.world.update_object_pose():
+                        # Call an asynchronous update on world so all TFs are updated
+                        self.world.update()
                         # An object is required, and we got one. Execute.
                         self.session.get_current_action().update_objects(
                             self.world.get_frame_list())
