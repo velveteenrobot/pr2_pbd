@@ -29,8 +29,8 @@ DEFAULT_OFFSET = 0.09
 # Marker options
 # --------------
 # Colors
-COLOR_MESH_REACHABLE = ColorRGBA(0.0, 0.5, 1.0, 0.6)
-COLOR_MESH_UNREACHABLE = ColorRGBA(0.5, 0.5, 0.5, 0.6)
+COLOR_MESH_REACHABLE = ColorRGBA(0.2, 0.4, 0.2, 0.6)
+COLOR_MESH_UNREACHABLE = ColorRGBA(0.4, 0.4, 0.4, 0.6)
 
 # Gripper mesh related
 ANGLE_GRIPPER_OPEN = 28 * numpy.pi / 180.0
@@ -86,6 +86,9 @@ class ArmControlMarker:
     # ##################################################################
     # Static methods: Internal ("private")
     # ##################################################################
+
+    def reset(self):
+        self.set_new_pose(self._arm.get_ee_state(), is_offset=True)  
 
     @staticmethod
     def get_pose_from_transform(transform):
@@ -248,8 +251,6 @@ class ArmControlMarker:
         else:
             rospy.loginfo('Will not move ' + side_str + ' arm, because unreachable.')
 
-
-    #### TODO... if necessary..
     def move_pose_to_cb(self, __):
         '''Callback for when a pose change to current is requested.
 
@@ -257,7 +258,7 @@ class ArmControlMarker:
             __ (???): Unused
 
         '''
-        self.set_new_pose(self._arm.get_ee_state(), is_offset=True)
+        self.reset()
 
     # ##################################################################
     # Instance methods: Internal ("private")
@@ -430,9 +431,9 @@ class ArmControlMarker:
         mesh = Marker()
         mesh.mesh_use_embedded_materials = False
         mesh.type = Marker.MESH_RESOURCE
-        mesh.scale.x = 1.0
-        mesh.scale.y = 1.0
-        mesh.scale.z = 1.0
+        mesh.scale.x = 1.01
+        mesh.scale.y = 1.01
+        mesh.scale.z = 1.01
         mesh.color = self._get_mesh_marker_color()
         return mesh
 

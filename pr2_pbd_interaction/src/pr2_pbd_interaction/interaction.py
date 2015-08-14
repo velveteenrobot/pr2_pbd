@@ -31,13 +31,14 @@ from pr2_social_gaze.msg import GazeGoal
 from response import Response
 from robot_speech import RobotSpeech
 from world import World
+from std_msgs.msg import String
+
 
 # ######################################################################
 # Module level constants
 # ######################################################################
 
 EXECUTION_Z_OFFSET = -0.00
-UPDATE_WAIT_SECONDS = 0.1
 BASE_LINK = 'base_link'
 # How fast to move between arm targets. NOTE(mbforbes): I'm unconvinced
 # this is actually used anywhere. See arm.py: MOVE_TO_JOINTS_VELOCITY.
@@ -72,6 +73,8 @@ class Interaction:
         # ROS publishers and subscribers.
         self._viz_publisher = rospy.Publisher(
             'visualization_marker_array', MarkerArray)
+        self._arm_reset_publisher = rospy.Publisher(
+            'arm_control_reset', String)
         rospy.Subscriber(
             'recognized_command', Command, self._speech_command_cb)
         rospy.Subscriber('gui_command', GuiCommand, self._gui_command_cb)
@@ -116,7 +119,7 @@ class Interaction:
 
         # Span off a thread to run the update loops.
         threading.Thread(
-            group=None, target=self._update, name='interaction_update_thread'
+            group=None, target=self.update, name='interaction_update_thread'
         ).start()
 
         # Register signal handlers for program termination.
@@ -171,52 +174,43 @@ class Interaction:
         This pauses for 100ms at the end of every
         run before returning.
         '''
-        # Loop while not shutdown.
-        while not rospy.is_shutdown():
-            # Update arms.
-            self.arms.update()
-            if self.arms.status != ExecutionStatus.NOT_EXECUTING:
-                if self.arms.status != ExecutionStatus.EXECUTING:
-                    self._end_execution()
 
-            # Record trajectory step.
-            if self._is_recording_motion:
-                self._save_arm_to_trajectory()
+        # Update arms.
+        self.arms.update()
+        if self.arms.status != ExecutionStatus.NOT_EXECUTING:
+            self._arm_reset_publisher.publish(String(''))
+            if self.arms.status != ExecutionStatus.EXECUTING:
+                self._end_execution()
 
-            # Update the current action if there is one.
-            if self.session.n_actions() > 0:
-                action = self.session.get_current_action()
-                action.update_viz()
+        # Record trajectory step.
+        if self._is_recording_motion:
+            self._save_arm_to_trajectory()
 
-                # TODO(mbforbes): Do we ever have r/l target(s)? When does
-                # this happen?
-                for side in [Side.RIGHT, Side.LEFT]:
-                    target = action.get_requested_target(side)
-                    if target is not None:
-                        self.arms.start_move_to_pose(target, side)
-                        action.reset_targets(side)
+        # Update the current action if there is one.
+        if self.session.n_actions() > 0:
+            action = self.session.get_current_action()
+            action.update_viz()
 
-                # Update any changes to steps that need to happen.
-                action.delete_requested_steps()
-                states = self._get_arm_states()
-                action.change_requested_steps(
-                    states[Side.RIGHT], states[Side.LEFT])
+            # TODO(mbforbes): Do we ever have r/l target(s)? When does
+            # this happen?
+            for side in [Side.RIGHT, Side.LEFT]:
+                target = action.get_requested_target(side)
+                if target is not None:
+                    self.arms.start_move_to_pose(target, side)
+                    action.reset_targets(side)
 
-                # If the objects in the world have changed, update the
-                # action with them.
-                if self.world.update():
-                    rospy.loginfo('The world has changed.')
-                    self.session.get_current_action().update_objects(
-                        self.world.get_frame_list())
+            # Update any changes to steps that need to happen.
+            action.delete_requested_steps()
+            states = self._get_arm_states()
+            action.change_requested_steps(
+                states[Side.RIGHT], states[Side.LEFT])
 
-            # This is the pause between update runs. Note that this doesn't
-            # guarantee an update rate, only that there is this amount of
-            # pause between udpates.
-            rospy.sleep(UPDATE_WAIT_SECONDS)
-
-        # At this point, we have shut down.
-        self.session.save_current_action()
-        rospy.loginfo("Interaction update thread exiting.")
+            # If the objects in the world have changed, update the
+            # action with them.
+            if self.world.update():
+                rospy.loginfo('The world has changed.')
+                self.session.get_current_action().update_objects(
+                    self.world.get_frame_list())
 
     # The following methods receive commands from speech / GUI and
     # process them. These are the multiplexers.
@@ -648,16 +642,17 @@ class Interaction:
             if self.session.n_frames() > 1:
                 # Save curent action and retrieve it.
                 self.session.save_current_action()
-                action = self.session.get_current_action()
 
                 # Now, see if we can execute.
-                if action.is_object_required():
+                if self.session.get_current_action().is_object_required():
                     # We need an object; check if we have one.
                     if self.world.update_object_pose():
+                        self.world.update()
                         # An object is required, and we got one. Execute.
                         self.session.get_current_action().update_objects(
                             self.world.get_frame_list())
-                        self.arms.start_execution(action, EXECUTION_Z_OFFSET)
+                        self.arms.start_execution(self.session.get_current_action(),
+                            EXECUTION_Z_OFFSET)
                     else:
                         # An object is required, but we didn't get it.
                         return [

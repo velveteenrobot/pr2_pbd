@@ -25,4 +25,6 @@
 	    <arg name="tabletop_segmentation_points_in" value="$(arg kinect_camera_name)/depth/points" />
 	</include>
 
+	<node name="pr2_arm_control" pkg="pr2_arm_control" type="arm_control_node.py" output="screen" />
+
 </launch>
