@@ -27,4 +27,6 @@
 
 	<node name="pr2_arm_control" pkg="pr2_arm_control" type="arm_control_node.py" output="screen" />
 
+  	<include file="$(find pr2_pbd_interaction)/launch/fake_caster.launch" />
+
 </launch>
