@@ -659,7 +659,7 @@ class Interaction:
                             RobotSpeech.OBJECT_NOT_DETECTED, GazeGoal.SHAKE]
                 else:
                     # No object is required: start execution now.
-                    self.arms.start_execution(action, EXECUTION_Z_OFFSET)
+                    self.arms.start_execution(self.session.get_current_action(), EXECUTION_Z_OFFSET)
 
                 # Reply: starting execution.
                 return [RobotSpeech.START_EXECUTION + ' ' +
