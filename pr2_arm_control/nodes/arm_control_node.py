@@ -17,4 +17,4 @@ if __name__ == '__main__':
     arm_controls = ArmControls()
     while(not rospy.is_shutdown()):
         arm_controls.update()
-        rospy.sleep(0.05)
+        rospy.sleep(0.5)

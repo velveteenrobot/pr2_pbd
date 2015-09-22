@@ -30,3 +30,6 @@ class ArmControls:
     def update(self):
         self.r_marker.update()
         self.l_marker.update()
+        self.r_marker.move_to_cb(None)
+        self.l_marker.move_to_cb(None)
+
