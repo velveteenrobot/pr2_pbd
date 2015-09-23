@@ -61,16 +61,17 @@ class ArmControlMarker:
         self._pose = self._arm.get_ee_state()
         self._lock = threading.Lock()
 
-    def update(self):
+    def update(self, realtime):
 
         self._menu_handler = MenuHandler()
 
         # Inset main menu entries.
-        # self._menu_handler.insert(
-        #     'Move gripper here', callback=self.move_to_cb)
-        # self._menu_handler.insert(
-        #     'Move marker to current gripper pose',
-        #     callback=self.move_pose_to_cb)
+        if not realtime:
+            self._menu_handler.insert(
+                'Move gripper here', callback=self.move_to_cb)
+            self._menu_handler.insert(
+                'Move marker to current gripper pose',
+                callback=self.move_pose_to_cb)
 
         if self._is_hand_open():
             self._menu_handler.insert(

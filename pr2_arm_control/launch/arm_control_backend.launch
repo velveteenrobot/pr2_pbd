@@ -5,6 +5,8 @@
 
   	<include file="$(find pr2_moveit_config)/launch/move_group.launch" />
 
-	<node name="pr2_arm_control" pkg="pr2_arm_control" type="arm_control_node.py" output="screen" />
+  	<arg name="realtime" default="True" />
+
+	<node name="pr2_arm_control" pkg="pr2_arm_control" type="arm_control_node.py" output="screen" args="$(arg realtime)" />
 
 </launch>
