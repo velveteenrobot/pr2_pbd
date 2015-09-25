@@ -34,4 +34,6 @@ class ArmControls:
         if self.realtime:
             self.r_marker.move_to_cb(None)
             self.l_marker.move_to_cb(None)
+            self.r_marker.move_to_cb_upper(None)
+            self.l_marker.move_to_cb_upper(None)
 

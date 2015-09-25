@@ -297,6 +297,9 @@ class Arm:
 
         self.traj_action_client.send_goal(traj_goal)
 
+    def cancel_move_to_joints(self):
+        self.traj_action_client.cancel_all_goals()
+
     def get_time_to_pose(self, target_pose):
         '''Returns the time to get to the arm pose held in target_pose.
 
