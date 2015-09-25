@@ -53,7 +53,7 @@ class ArmControlMarker:
         if ArmControlMarker._im_server is None:
             im_server = InteractiveMarkerServer('interactive_arm_control')
             ArmControlMarker._im_server = im_server
-
+        self._move_upper = False
         self._arm = arm
         self._is_control_visible = False
         self._menu_handler = None
@@ -282,7 +282,10 @@ class ArmControlMarker:
             self._arm.cancel_move_to_joints()
             self._pose_upper = self.get_arm_roll_pose()
             self.update(None)
+            self._move_upper = False
 
+        elif feedback.event_type == InteractiveMarkerFeedback.MOUSE_DOWN:
+            self._move_upper = True
         # self.move_to_cb_upper(None)
 
     def marker_feedback_cb(self, feedback):
@@ -320,7 +323,10 @@ class ArmControlMarker:
         Args:
             __ (???): Unused
         '''
-
+        if not self._move_upper:
+            return
+        self._arm.cancel_old_goals()
+        rospy.loginfo("Moving upper arm!!!")
         self._lock.acquire()
         pose = ArmControlMarker.copy_pose(self._pose_upper)
         pose_2 = ArmControlMarker.copy_pose(self._pose)
@@ -379,6 +385,7 @@ class ArmControlMarker:
             __ (???): Unused
         '''
 
+        self._arm.cancel_old_goals()
         self._lock.acquire()
         pose = ArmControlMarker.copy_pose(self._pose)
         self._lock.release()
