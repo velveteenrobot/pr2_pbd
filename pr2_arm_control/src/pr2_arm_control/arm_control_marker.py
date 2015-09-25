@@ -7,7 +7,7 @@ an action.'''
 
 import rospy
 import numpy
-from geometry_msgs.msg import Quaternion, Vector3, Point, Pose
+from geometry_msgs.msg import Quaternion, Vector3, Point, Pose, PoseStamped
 from std_msgs.msg import Header, ColorRGBA
 import tf
 from interactive_markers.interactive_marker_server import (
@@ -59,7 +59,21 @@ class ArmControlMarker:
         self._menu_handler = None
         self._prev_is_reachable = None
         self._pose = self._arm.get_ee_state()
+        self._arm_letter = ['r', 'l']
+        self._tf_listener = tf.TransformListener()
+        
+        self._pose_upper = self.get_arm_roll_pose()
         self._lock = threading.Lock()
+        
+
+    def get_arm_roll_pose(self):
+        pose = PoseStamped()
+        pose.pose.orientation.w = 0
+        pose.header.frame_id = self._arm_letter[self._arm.arm_index] + '_upper_arm_roll_link'
+        self._tf_listener.waitForTransform(self._arm_letter[self._arm.arm_index] + '_upper_arm_roll_link', self._arm_letter[self._arm.arm_index] + '_shoulder_lift_link', rospy.Time(0), rospy.Duration(4.0))
+        new_pose = self._tf_listener.transformPose(self._arm_letter[self._arm.arm_index] + '_shoulder_lift_link', pose)
+        return new_pose.pose
+
 
     def update(self, realtime):
 
@@ -105,6 +119,25 @@ class ArmControlMarker:
         self._menu_handler.apply(ArmControlMarker._im_server,
             self._get_name())
         ArmControlMarker._im_server.applyChanges()
+
+        pose = self.get_pose_upper()
+        #self.set_new_pose_upper(pose)
+
+        # Make and add interactive marker.
+        int_marker_upper = InteractiveMarker()
+        int_marker_upper.name = self._get_name() + '_upper'
+        int_marker_upper.header.frame_id = self._arm_letter[self._arm.arm_index] + '_shoulder_lift_link'
+        int_marker_upper.pose = pose
+        int_marker_upper.scale = INT_MARKER_SCALE * 2
+        self._add_1dof_marker(int_marker_upper, True)
+        # int_marker_upper.controls.append(menu_control)
+        ArmControlMarker._im_server.insert(
+            int_marker_upper, self.marker_feedback_cb_upper)
+
+        self._menu_handler.apply(ArmControlMarker._im_server,
+            self._get_name() + '_upper')
+        ArmControlMarker._im_server.applyChanges()
+
 
     def reset(self):
         self.set_new_pose(self._arm.get_ee_state(), is_offset=True)  
@@ -178,6 +211,19 @@ class ArmControlMarker:
         ArmControlMarker._im_server.erase(self._get_name())
         ArmControlMarker._im_server.applyChanges()
 
+    def set_new_pose_upper(self, new_pose, is_offset=False):
+        '''Changes the pose of the action step to new_pose.
+
+        Args:
+            new_pose (Pose)
+        '''
+        self._lock.acquire()
+        if is_offset:
+            self._pose_upper = new_pose
+        else:
+            self._pose_upper = ArmControlMarker._offset_pose(new_pose, -1)
+        self._lock.release()
+
     def set_new_pose(self, new_pose, is_offset=False):
         '''Changes the pose of the action step to new_pose.
 
@@ -213,6 +259,32 @@ class ArmControlMarker:
         self._lock.release()
         return ArmControlMarker._offset_pose(pose)
 
+    def get_pose_upper(self):
+        '''Returns the pose of the action step.
+
+        Returns:
+            Pose
+        '''
+        self._lock.acquire()
+        pose = ArmControlMarker.copy_pose(self._pose_upper)
+        self._lock.release()
+        return ArmControlMarker._offset_pose(pose)
+
+    def marker_feedback_cb_upper(self, feedback):
+        '''Callback for when an event occurs on the marker.
+
+        Args:
+            feedback (InteractiveMarkerFeedback)
+        '''
+        if feedback.event_type == InteractiveMarkerFeedback.POSE_UPDATE:
+            self.set_new_pose_upper(feedback.pose)
+        elif feedback.event_type == InteractiveMarkerFeedback.MOUSE_UP:
+            self._arm.cancel_move_to_joints()
+            self._pose_upper = self.get_arm_roll_pose()
+            self.update(None)
+
+        # self.move_to_cb_upper(None)
+
     def marker_feedback_cb(self, feedback):
         '''Callback for when an event occurs on the marker.
 
@@ -235,11 +307,70 @@ class ArmControlMarker:
             rospy.logdebug('Unknown event: ' + str(feedback.event_type))
 
 
+
     def open_gripper_cb(self, __):
         self._arm.open_gripper()
 
     def close_gripper_cb(self, __):
         self._arm.close_gripper()
+
+    def move_to_cb_upper(self, __):
+        '''Callback for when moving to a pose is requested.
+
+        Args:
+            __ (???): Unused
+        '''
+
+        self._lock.acquire()
+        pose = ArmControlMarker.copy_pose(self._pose_upper)
+        pose_2 = ArmControlMarker.copy_pose(self._pose)
+        self._lock.release()
+
+        quaternion = (
+            pose.orientation.x,
+            pose.orientation.y,
+            pose.orientation.z,
+            pose.orientation.w)
+        euler = tf.transformations.euler_from_quaternion(quaternion)
+        roll = euler[0]
+        pitch = euler[1]
+        yaw = euler[2]
+
+        target_joints = self._arm.get_ik_for_ee(
+                pose_2, self._arm.get_joint_state())
+        # for i in range(len(target_joints)):
+        #     target_joints[i] = 9999
+        if not target_joints is None:
+            print target_joints[2]
+            print roll
+            roll_diff = roll - target_joints[2]
+            if roll_diff > 0.3:
+                roll_diff = 0.3
+            elif roll_diff < -0.3:
+                roll_diff = -0.3
+            target_joints[2] += roll_diff
+        side_str = self._arm.side()
+
+        if target_joints is not None:
+            time_to_pose = self._arm.get_time_to_pose(self.get_pose())
+
+            thread = threading.Thread(
+                group=None,
+                target=self._arm.move_to_joints,
+                args=(target_joints, time_to_pose),
+                name='move_to_arm_state_thread'
+            )
+            thread.start()
+            rospy.sleep(0.1)
+
+            # Log
+            
+            rospy.loginfo('Started thread to move ' + side_str + ' arm.')
+        else:
+            rospy.loginfo('Will not move ' + side_str + ' arm; unreachable.')
+
+
+        self.move_to_cb(None)
 
     def move_to_cb(self, __):
         '''Callback for when moving to a pose is requested.
@@ -259,13 +390,13 @@ class ArmControlMarker:
         if target_joints is not None:
             time_to_pose = self._arm.get_time_to_pose(self.get_pose())
 
-            thread = threading.Thread(
+            self.thread = threading.Thread(
                 group=None,
                 target=self._arm.move_to_joints,
                 args=(target_joints, time_to_pose),
                 name='move_to_arm_state_thread'
             )
-            thread.start()
+            self.thread.start()
 
             # Log
             
@@ -363,6 +494,25 @@ class ArmControlMarker:
             control = self._make_6dof_control(
                 name, orient, is_move, is_fixed)
             int_marker.controls.append(control)
+
+    def _add_1dof_marker(self, int_marker, is_fixed):
+        '''Adds a 6 DoF control marker to the interactive marker.
+
+        Args:
+            int_marker (InteractiveMarker)
+            is_fixed (bool): Looks like whether position is fixed (?).
+                Currently only passed as True.
+        '''
+        # Each entry in options is (name, orientation, is_move)
+        options = [
+            ('rotate_x', Quaternion(1, 0, 0, 1), False)
+        ]
+        for opt in options:
+            name, orient, is_move = opt
+            control = self._make_6dof_control(
+                name, orient, is_move, is_fixed)
+            int_marker.controls.append(control)
+
 
     def _make_6dof_control(self, name, orientation, is_move, is_fixed):
         '''Creates and returns one component of the 6dof controller.
