@@ -10,6 +10,9 @@ find_package(catkin REQUIRED COMPONENTS
   std_msgs
   geometry_msgs
   tf
+  moveit_ros_planning
+  moveit_ros_planning_interface
+  moveit_core
   message_generation
 )
 
@@ -70,7 +73,7 @@ include_directories(
 # )
 
 ## Declare a cpp executable
-# add_executable(pr2_pbd_node src/pr2_pbd_node.cpp)
+# add_executable(clear_octomap_server src/clear_octomap_server.cpp)
 
 ## Add cmake target dependencies of the executable/library
 ## as an example, message headers may need to be generated before nodes

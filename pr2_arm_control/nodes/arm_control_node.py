@@ -9,6 +9,7 @@ import sys
 import rospy
 import signal
 from pr2_arm_control.arm_controls import ArmControls
+from std_msgs.srv import Empty
 
 
 if __name__ == '__main__':
@@ -27,7 +28,10 @@ if __name__ == '__main__':
             realtime = True
 
     # Run the system
+    client = rospy.ServiceProxy('clear_octomap', Empty)
+    client()
     arm_controls = ArmControls(realtime)
     while(not rospy.is_shutdown()):
         arm_controls.update()
         rospy.sleep(0.05)
+
