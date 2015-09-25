@@ -126,6 +126,7 @@ class Arm:
     def get_ee_state(self, ref_frame='base_link'):
         ''' Returns end effector pose for the arm'''
         try:
+            self.tf_listener.waitForTransform(ref_frame, self.ee_name, rospy.Time(0), rospy.Duration(20.0))
             time = self.tf_listener.getLatestCommonTime(ref_frame,
                                                          self.ee_name)
             (position, orientation) = self.tf_listener.lookupTransform(

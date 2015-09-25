@@ -31,8 +31,14 @@ if __name__ == '__main__':
     client = rospy.ServiceProxy('clear_octomap', Empty)
     client.wait_for_service()
     client()
-    arm_controls = ArmControls(realtime)
+    
     while(not rospy.is_shutdown()):
-        arm_controls.update()
-        rospy.sleep(0.01)
+        arm_controls = ArmControls(realtime)
+        for i in range(1000):
+            try:
+                arm_controls.update()
+                rospy.sleep(0.01)
+            except:
+                rospy.loginfo("EXCEPTION")
+                break
 
