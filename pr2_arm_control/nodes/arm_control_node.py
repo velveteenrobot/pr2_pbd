@@ -38,7 +38,8 @@ if __name__ == '__main__':
             try:
                 arm_controls.update()
                 rospy.sleep(0.01)
-            except:
-                rospy.loginfo("EXCEPTION")
+            except Exception, e:
+                rospy.loginfo("EXCEPTION: " + str(e))
+                rospy.sleep(2.0)
                 break
 

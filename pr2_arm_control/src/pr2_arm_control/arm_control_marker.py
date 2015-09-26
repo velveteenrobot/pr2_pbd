@@ -9,6 +9,7 @@ import rospy
 import numpy
 from geometry_msgs.msg import Quaternion, Vector3, Point, Pose, PoseStamped
 from std_msgs.msg import Header, ColorRGBA
+from sensor_msgs.msg import JointState
 import tf
 from interactive_markers.interactive_marker_server import (
     InteractiveMarkerServer)
@@ -25,7 +26,7 @@ from pr2_arm_control.msg import Side, GripperState
 
 DEFAULT_OFFSET = 0.09
 COLOR_MESH_REACHABLE = ColorRGBA(0.5, 0.5, 0.5, 0.6)
-COLOR_MESH_UNREACHABLE = ColorRGBA(0.05, 0.05, 0.05, 0.6)
+COLOR_MESH_UNREACHABLE = ColorRGBA(1.0, 0.0, 0.0, 0.6)
 ANGLE_GRIPPER_OPEN = 28 * numpy.pi / 180.0
 ANGLE_GRIPPER_CLOSED = 0.0
 STR_MESH_GRIPPER_FOLDER = 'package://pr2_description/meshes/gripper_v0/'
@@ -595,8 +596,12 @@ class ArmControlMarker:
             InteractiveMarkerControl: The passed control.
         '''
         # Set angle of meshes based on gripper open vs closed.
-        angle = ANGLE_GRIPPER_OPEN if is_hand_open else ANGLE_GRIPPER_CLOSED
-
+        if is_hand_open:
+            angle = ANGLE_GRIPPER_OPEN
+        else:
+            msg = rospy.wait_for_message("joint_states", JointState)
+            idx = msg.name.index(self._arm_letter[self._arm.arm_index] + '_gripper_joint')
+            angle = 350*msg.position[idx]*numpy.pi/180  
         # Make transforms in preparation for meshes 1, 2, and 3.
         # NOTE(mbforbes): There are some magic numbers in here that are
         # used a couple times. Seems like a good candidate for
