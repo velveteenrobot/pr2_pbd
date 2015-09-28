@@ -351,10 +351,10 @@ class ArmControlMarker:
             print target_joints[2]
             print roll
             roll_diff = roll - target_joints[2]
-            if roll_diff > 0.3:
-                roll_diff = 0.3
-            elif roll_diff < -0.3:
-                roll_diff = -0.3
+            if roll_diff > 0.15:
+                roll_diff = 0.15
+            elif roll_diff < -0.15:
+                roll_diff = -0.15
             target_joints[2] += roll_diff
         side_str = self._arm.side()
 

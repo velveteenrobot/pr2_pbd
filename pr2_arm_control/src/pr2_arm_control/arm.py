@@ -303,6 +303,7 @@ class Arm:
 
     def cancel_old_goals(self):
         self.traj_action_client.cancel_goals_at_and_before_time(rospy.Time.now() - rospy.Duration(0.5))
+        rospy.loginfo("Cancelling goals!")
 
     def get_time_to_pose(self, target_pose):
         '''Returns the time to get to the arm pose held in target_pose.
