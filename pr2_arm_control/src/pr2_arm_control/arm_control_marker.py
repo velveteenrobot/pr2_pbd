@@ -7,6 +7,7 @@ an action.'''
 
 import rospy
 import numpy
+import math
 from geometry_msgs.msg import Quaternion, Vector3, Point, Pose, PoseStamped
 from std_msgs.msg import Header, ColorRGBA
 from sensor_msgs.msg import JointState
@@ -65,7 +66,10 @@ class ArmControlMarker:
         
         self._pose_upper = self.get_arm_roll_pose()
         self._lock = threading.Lock()
-        
+        self._changed = False 
+        self._count_since_changed = 0     
+        self._position_thresh = 0.004
+        self._angle_thresh = 0.005  
 
     def get_arm_roll_pose(self):
         pose = PoseStamped()
@@ -83,7 +87,7 @@ class ArmControlMarker:
         # Inset main menu entries.
         if not realtime:
             self._menu_handler.insert(
-                'Move gripper here', callback=self.move_to_cb)
+                'Move gripper here', callback=self.force_move_to_cb)
             self._menu_handler.insert(
                 'Move marker to current gripper pose',
                 callback=self.move_pose_to_cb)
@@ -233,10 +237,107 @@ class ArmControlMarker:
         '''
         self._lock.acquire()
         if is_offset:
-            self._pose = new_pose
+            
+            pose = new_pose
         else:
-            self._pose = ArmControlMarker._offset_pose(new_pose, -1)
+            pose = ArmControlMarker._offset_pose(new_pose, -1)
         self._lock.release()
+
+
+        """
+        quaternion = (
+            pose.orientation.x,
+            pose.orientation.y,
+            pose.orientation.z,
+            pose.orientation.w)
+        euler = tf.transformations.euler_from_quaternion(quaternion)
+        roll = euler[0]
+        pitch = euler[1]
+        yaw = euler[2]
+        quaternion_old = (
+            self._pose.orientation.x,
+            self._pose.orientation.y,
+            self._pose.orientation.z,
+            self._pose.orientation.w)
+        euler_old = tf.transformations.euler_from_quaternion(quaternion_old)
+        roll_old = euler_old[0]
+        pitch_old = euler_old[1]
+        yaw_old = euler_old[2]
+
+
+        if math.fabs(self._pose.position.x - new_pose.position.x) > self._position_thresh:
+            self._changed = True
+            #rospy.loginfo("Position x: {}, {}".format(pose.position.x, new_pose.position.x))
+        elif math.fabs(self._pose.position.y - new_pose.position.y) > self._position_thresh:
+            self._changed = True
+            #rospy.loginfo("Position y: {}, {}".format(pose.position.y, new_pose.position.y))
+        elif math.fabs(self._pose.position.z - new_pose.position.z) > self._position_thresh:
+            self._changed = True
+            #rospy.loginfo("Position z: {}, {}".format(pose.position.z, new_pose.position.z))
+
+        elif math.fabs(roll_old - roll) > self._angle_thresh:
+            self._changed = True
+            rospy.loginfo("Roll : {}, {}".format(roll, roll_old))
+    
+        elif math.fabs(pitch_old - pitch) > self._angle_thresh:
+            self._changed = True
+            rospy.loginfo("Pitch : {}, {}".format(pitch, pitch_old))
+        elif math.fabs(yaw_old - yaw) > self._angle_thresh:
+            self._changed = True
+            rospy.loginfo("Yaw : {}, {}".format(yaw, yaw_old))
+
+        else:
+            self._changed = False
+        """
+        self._changed = self.is_different(pose, self._pose)
+        self._pose = pose
+
+    def is_different(self, pose, new_pose):
+        changed = False
+        quaternion = (
+            pose.orientation.x,
+            pose.orientation.y,
+            pose.orientation.z,
+            pose.orientation.w)
+        euler = tf.transformations.euler_from_quaternion(quaternion)
+        roll = euler[0]
+        pitch = euler[1]
+        yaw = euler[2]
+        quaternion_old = (
+            new_pose.orientation.x,
+            new_pose.orientation.y,
+            new_pose.orientation.z,
+            new_pose.orientation.w)
+        euler_old = tf.transformations.euler_from_quaternion(quaternion_old)
+        roll_old = euler_old[0]
+        pitch_old = euler_old[1]
+        yaw_old = euler_old[2]
+
+
+        if math.fabs(pose.position.x - new_pose.position.x) > self._position_thresh:
+            changed = True
+            rospy.loginfo("Position x: {}, {}".format(pose.position.x, new_pose.position.x))
+        elif math.fabs(pose.position.y - new_pose.position.y) > self._position_thresh:
+            changed = True
+            rospy.loginfo("Position y: {}, {}".format(pose.position.y, new_pose.position.y))
+        elif math.fabs(pose.position.z - new_pose.position.z) > self._position_thresh:
+            changed = True
+            rospy.loginfo("Position z: {}, {}".format(pose.position.z, new_pose.position.z))
+
+        elif math.fabs(roll_old - roll) > self._angle_thresh:
+            changed = True
+            rospy.loginfo("Roll : {}, {}".format(roll, roll_old))
+    
+        elif math.fabs(pitch_old - pitch) > self._angle_thresh:
+            changed = True
+            rospy.loginfo("Pitch : {}, {}".format(pitch, pitch_old))
+        elif math.fabs(yaw_old - yaw) > self._angle_thresh:
+            changed = True
+            rospy.loginfo("Yaw : {}, {}".format(yaw, yaw_old))
+
+        else:
+            changed = False
+        return changed
 
     @staticmethod
     def copy_pose(pose):
@@ -379,12 +480,32 @@ class ArmControlMarker:
 
         self.move_to_cb(None)
 
+    def force_move_to_cb(self, __):
+        '''Callback for when moving to a pose is requested. Forces
+        the move to happen.
+        '''
+        self._changed = True
+        self.move_to_cb(None)
+
     def move_to_cb(self, __):
         '''Callback for when moving to a pose is requested.
 
         Args:
             __ (???): Unused
         '''
+        #if self._count_since_changed > 300:
+        #    pose = self._arm.get_ee_state() 
+        #    if self.is_different(self._pose, pose):
+        #        self.set_new_pose(pose)   
+
+        if not self._changed:
+            rospy.loginfo("No change")
+            self._count_since_changed += 1
+            return
+        else: 
+            self._count_since_changed = 0
+
+    
 
         self._arm.cancel_old_goals()
         self._lock.acquire()
