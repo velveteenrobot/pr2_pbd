@@ -2,9 +2,13 @@
 # Catkin CMake Standard: http://www.ros.org/doc/groovy/api/catkin/html/user_guide/standards.html
 cmake_minimum_required(VERSION 2.8.3)
 project(pr2_arm_control)
+
+set(PCL_DIR /usr/share/pcl-1.7/PCLConfig.cmake)
+
 # Load catkin and all dependencies required for this package
 # TODO: remove all from COMPONENTS that are not catkin packages.
 find_package(catkin REQUIRED COMPONENTS
+  roscpp
   rospy
   actionlib
   std_msgs
@@ -15,6 +19,12 @@ find_package(catkin REQUIRED COMPONENTS
   moveit_core
   message_generation
 )
+
+# PCL
+find_package(PCL 1.7 EXACT REQUIRED)
+include_directories(${PCL_INCLUDE_DIRS})
+link_directories(${PCL_LIBRARY_DIRS})
+add_definitions(${PCL_DEFINITIONS})
 
 # include_directories(include ${Boost_INCLUDE_DIR} ${catkin_INCLUDE_DIRS})
 # CATKIN_MIGRATION: removed during catkin migration
@@ -62,7 +72,7 @@ catkin_package(
 
 ## Specify additional locations of header files
 ## Your package locations should be listed before other locations
-# include_directories(include)
+#include_directories(include)
 include_directories(
   ${catkin_INCLUDE_DIRS}
 )

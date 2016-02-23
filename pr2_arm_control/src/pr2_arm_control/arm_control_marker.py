@@ -8,7 +8,8 @@ an action.'''
 import rospy
 import numpy
 import math
-from geometry_msgs.msg import Quaternion, Vector3, Point, Pose, PoseStamped
+from geometry_msgs.msg import (Quaternion, Vector3, Point, Pose, 
+    PoseStamped, PointStamped)
 from std_msgs.msg import Header, ColorRGBA
 from sensor_msgs.msg import JointState
 import tf
@@ -63,6 +64,7 @@ class ArmControlMarker:
         self._pose = self._arm.get_ee_state()
         self._arm_letter = ['r', 'l']
         self._tf_listener = tf.TransformListener()
+        self._point_subscriber = rospy.Subscriber("/clicked_point",PointStamped,self.clicked_point_cb)
         
         self._pose_upper = self.get_arm_roll_pose()
         self._lock = threading.Lock()
@@ -371,6 +373,16 @@ class ArmControlMarker:
         pose = ArmControlMarker.copy_pose(self._pose_upper)
         self._lock.release()
         return ArmControlMarker._offset_pose(pose)
+
+    def clicked_point_cb(self, point_stamped):
+        '''Callback to ets the pose position to a clicked point
+
+        Args:
+            point_stamped (geometry_msgs/PointStamped)
+        '''
+        target_pose = self.get_pose()
+        target_pose.position = point_stamped.point
+        self.set_new_pose(target_pose)
 
     def marker_feedback_cb_upper(self, feedback):
         '''Callback for when an event occurs on the marker.
