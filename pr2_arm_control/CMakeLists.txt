@@ -19,11 +19,11 @@ find_package(catkin REQUIRED COMPONENTS
 )
 
 # PCL
-#set(PCL_DIR /usr/share/pcl-1.7/PCLConfig.cmake)
-#find_package(PCL 1.7 EXACT REQUIRED)
-#include_directories(${PCL_INCLUDE_DIRS})
-#link_directories(${PCL_LIBRARY_DIRS})
-#add_definitions(${PCL_DEFINITIONS})
+set(PCL_DIR /usr/share/pcl-1.7/PCLConfig.cmake)
+find_package(PCL 1.7 EXACT REQUIRED)
+include_directories(${PCL_INCLUDE_DIRS})
+link_directories(${PCL_LIBRARY_DIRS})
+add_definitions(${PCL_DEFINITIONS})
 
 # include_directories(include ${Boost_INCLUDE_DIR} ${catkin_INCLUDE_DIRS})
 # CATKIN_MIGRATION: removed during catkin migration
@@ -73,10 +73,13 @@ catkin_package(
 ## Your package locations should be listed before other locations
 include_directories(include ${catkin_INCLUDE_DIRS} ${PCL_INCLUDE_DIRS} ${OpenCV_INCLUDE_DIRS})
 
-#set(SOURCE_FILES
-# src/normal_buffer.cpp
-# include/pr2_arm_control/normal_buffer.h
-#)
+# this forces qt creator to import files
+set(SOURCE_FILES
+ src/normal_buffer.cpp
+ include/pr2_arm_control/normal_buffer.h
+)
+
+add_library(${PROJECT_NAME} ${SOURCE_FILES})
 
 ## Declare a cpp library
 add_library(normal_buffer src/normal_buffer.cpp)
