@@ -76,12 +76,22 @@ class ArmControlMarker:
     def clicked_point_cb(self, pose_stamped):
         pose_stamped.header.stamp = rospy.Time(0)
         new_pose = self._tf_listener.transformPose(REF_FRAME, pose_stamped)
-#        print(new_pose)
-#        new_pose.pose.orientation.x = -1*new_pose.pose.orientation.x
-#        new_pose.pose.orientation.y = -1*new_pose.pose.orientation.y
-#        new_pose.pose.orientation.z = -1*new_pose.pose.orientation.z
-#        new_pose.pose.orientation.w = 1*new_pose.pose.orientation.w
-#        print(new_pose)
+        rot_y = (0,1,0,0)
+        o = new_pose.pose.orientation
+        normal = (o.x, o.y, o.z, o.w)
+        # flip normal to get gripper orientation
+        flipped_normal = tf.transformations.quaternion_multiply(rot_y, normal)
+        new_pose.pose.orientation.x = flipped_normal[0]
+        new_pose.pose.orientation.y = flipped_normal[1]
+        new_pose.pose.orientation.z = flipped_normal[2]
+        new_pose.pose.orientation.w = flipped_normal[3]
+        # back the gripper off along the normal direction
+        BACKOFF_DIST = 0.05
+        normal_vector = tf.transformations.quaternion_matrix(normal).dot((BACKOFF_DIST,0,0,1))
+        new_pose.pose.position.x += normal_vector[0] / normal_vector[3]
+        new_pose.pose.position.y += normal_vector[1] / normal_vector[3]
+        new_pose.pose.position.z += normal_vector[2] / normal_vector[3]
+        # set the pose
         self.set_new_pose(new_pose.pose)
 
     def get_arm_roll_pose(self):
