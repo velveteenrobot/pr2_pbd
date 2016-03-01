@@ -62,10 +62,21 @@ class ArmControlMarker:
         self._pose = self._arm.get_ee_state()
         self._arm_letter = ['r', 'l']
         self._tf_listener = tf.TransformListener()
+        self._click_sub = rospy.Subscriber('/clicked_point_normal', PoseStamped, self.clicked_point_cb)
         
         self._pose_upper = self.get_arm_roll_pose()
         self._lock = threading.Lock()
-        
+
+    def clicked_point_cb(self, pose_stamped):
+        pose_stamped.header.stamp = rospy.Time(0)
+        new_pose = self._tf_listener.transformPose(REF_FRAME, pose_stamped)
+#        print(new_pose)
+#        new_pose.pose.orientation.x = -1*new_pose.pose.orientation.x
+#        new_pose.pose.orientation.y = -1*new_pose.pose.orientation.y
+#        new_pose.pose.orientation.z = -1*new_pose.pose.orientation.z
+#        new_pose.pose.orientation.w = 1*new_pose.pose.orientation.w
+#        print(new_pose)
+        self.set_new_pose(new_pose.pose)
 
     def get_arm_roll_pose(self):
         pose = PoseStamped()
