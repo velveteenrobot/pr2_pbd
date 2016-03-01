@@ -385,16 +385,6 @@ class ArmControlMarker:
         self._lock.release()
         return ArmControlMarker._offset_pose(pose)
 
-    def clicked_point_cb(self, point_stamped):
-        '''Callback to ets the pose position to a clicked point
-
-        Args:
-            point_stamped (geometry_msgs/PointStamped)
-        '''
-        target_pose = self.get_pose()
-        target_pose.position = point_stamped.point
-        self.set_new_pose(target_pose)
-
     def marker_feedback_cb_upper(self, feedback):
         '''Callback for when an event occurs on the marker.
 
