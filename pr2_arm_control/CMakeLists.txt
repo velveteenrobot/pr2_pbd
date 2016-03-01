@@ -2,9 +2,11 @@
 # Catkin CMake Standard: http://www.ros.org/doc/groovy/api/catkin/html/user_guide/standards.html
 cmake_minimum_required(VERSION 2.8.3)
 project(pr2_arm_control)
+
 # Load catkin and all dependencies required for this package
 # TODO: remove all from COMPONENTS that are not catkin packages.
 find_package(catkin REQUIRED COMPONENTS
+  roscpp
   rospy
   actionlib
   std_msgs
@@ -15,6 +17,13 @@ find_package(catkin REQUIRED COMPONENTS
   moveit_core
   message_generation
 )
+
+# PCL
+set(PCL_DIR /usr/share/pcl-1.7/PCLConfig.cmake)
+find_package(PCL 1.7 EXACT REQUIRED)
+include_directories(${PCL_INCLUDE_DIRS})
+link_directories(${PCL_LIBRARY_DIRS})
+add_definitions(${PCL_DEFINITIONS})
 
 # include_directories(include ${Boost_INCLUDE_DIR} ${catkin_INCLUDE_DIRS})
 # CATKIN_MIGRATION: removed during catkin migration
@@ -50,10 +59,10 @@ generate_messages(
 # catkin_package parameters: http://ros.org/doc/groovy/api/catkin/html/dev_guide/generated_cmake_api.html#catkin-package
 # TODO: fill in what other packages will need to use this package
 catkin_package(
-  INCLUDE_DIRS src/pr2_arm_control
-  LIBRARIES pr2_arm_control
+  INCLUDE_DIRS include
   CATKIN_DEPENDS rospy
-  DEPENDS system_lib
+#  LIBRARIES pr2_arm_control
+#  DEPENDS system_lib
 )
 
 ###########
@@ -62,27 +71,29 @@ catkin_package(
 
 ## Specify additional locations of header files
 ## Your package locations should be listed before other locations
-# include_directories(include)
-include_directories(
-  ${catkin_INCLUDE_DIRS}
+include_directories(include ${catkin_INCLUDE_DIRS} ${PCL_INCLUDE_DIRS} ${OpenCV_INCLUDE_DIRS})
+
+# this forces qt creator to import files
+set(SOURCE_FILES
+ src/normal_buffer.cpp
+ include/pr2_arm_control/normal_buffer.h
 )
 
+add_library(${PROJECT_NAME} ${SOURCE_FILES})
+
 ## Declare a cpp library
-# add_library(pr2_pbd
-#   src/${PROJECT_NAME}/pr2_pbd.cpp
-# )
+add_library(normal_buffer src/normal_buffer.cpp)
 
 ## Declare a cpp executable
-# add_executable(clear_octomap_server src/clear_octomap_server.cpp)
+add_executable(clicked_point_with_normal_node src/clicked_point_with_normal_node.cpp)
 
 ## Add cmake target dependencies of the executable/library
 ## as an example, message headers may need to be generated before nodes
-# add_dependencies(pr2_pbd_node pr2_pbd_generate_messages_cpp)
+#add_dependencies(clicked_point_with_normal_node ${PROJECT_NAME})
 
 ## Specify libraries to link a library or executable target against
-# target_link_libraries(pr2_pbd_node
-#   ${catkin_LIBRARIES}
-# )
+target_link_libraries(normal_buffer ${catkin_LIBRARIES} ${PCL_LIBRARIES})
+target_link_libraries(clicked_point_with_normal_node normal_buffer ${catkin_LIBRARIES} ${PCL_LIBRARIES})
 
 #############
 ## Install ##

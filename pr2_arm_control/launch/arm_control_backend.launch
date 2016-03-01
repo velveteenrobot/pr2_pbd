@@ -5,10 +5,11 @@
 
   	<include file="$(find pr2_arm_control)/launch/move_group.launch" />
 
-  	<arg name="realtime" default="True" />
+  	<arg name="realtime" default="False" />
 
 	<node name="pr2_arm_control" pkg="pr2_arm_control" type="arm_control_node.py" output="screen" args="$(arg realtime)" />
 
   	<include file="$(find pr2_arm_control)/launch/fake_frames.launch" />
+  	<include file="$(find pr2_pick_perception)/launch/perception.launch" />
 
 </launch>
